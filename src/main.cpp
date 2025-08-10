@@ -4,6 +4,7 @@
 #include "DataSender.h"
 #include "ConfigManager.h"
 #include "WebConfig.h"
+#include "WiFiLedStatus.h"
 // #include <WiFiManager.h>
 
 // Define your RX and TX pins here (adjust as needed for your hardware)
@@ -15,12 +16,18 @@ NetworkManager networkManager;
 DataSender dataSender;
 ConfigManager configManager;
 WebConfig webConfig(configManager);
+WiFiLedStatus wifiLedStatus(LED_BUILTIN); // Sử dụng LED tích hợp trên ESP8266
 
 unsigned long lastWifiCheck = 0;
+unsigned long lastSendData = 0;
 const unsigned long WIFI_CHECK_INTERVAL = 10000; // Kiểm tra WiFi mỗi 10 giây
+const unsigned long SEND_INTERVAL = 10000;       // 10 giây
 
 void setup()
 {
+    wifiLedStatus.begin();
+    wifiLedStatus.setState(WiFiLedStatus::OFF);
+    wifiLedStatus.update();
     Serial.begin(115200);
     // WiFiManager wifiManager;
     // wifiManager.resetSettings();
@@ -57,8 +64,81 @@ void setup()
     Serial.println("==================================================");
 }
 
+WiFiLedStatus::LedState currentLedState = WiFiLedStatus::OFF;
+
 void loop()
 {
+    dataSender.loop();
+    webConfig.handle();
+
+    unsigned long now = millis();
+
+    // Kiểm tra WiFi định kỳ
+    if (now - lastWifiCheck > WIFI_CHECK_INTERVAL)
+    {
+        Serial.println("🔄 Kiểm tra kết nối WiFi...");
+        if (!networkManager.isConnected())
+        {
+            if (currentLedState != WiFiLedStatus::OFF)
+            {
+                wifiLedStatus.setState(WiFiLedStatus::OFF);
+                currentLedState = WiFiLedStatus::OFF;
+                wifiLedStatus.update();
+            }
+            Serial.println("⚠️ Mất kết nối WiFi! Đang thử kết nối lại...");
+            networkManager.reconnect();
+        }
+        else
+        {
+            if (currentLedState != WiFiLedStatus::ON)
+            {
+                wifiLedStatus.setState(WiFiLedStatus::ON);
+                currentLedState = WiFiLedStatus::ON;
+            }
+            Serial.println("✅ Kết nối WiFi ổn định.");
+        }
+        lastWifiCheck = now;
+    }
+
+    MeterReadings readings = meter.getReadings();
+
+    if (!isnan(readings.voltage))
+    {
+        // Serial.printf("V: %.1f | I: %.2f | P: %.1f | E: %.2f\n", readings.voltage, readings.current, readings.power, readings.energy);
+
+        // Gửi dữ liệu định kỳ, không delay trong loop
+        if (now - lastSendData > SEND_INTERVAL)
+        {
+            dataSender.sendData(readings.voltage, readings.current, readings.power, readings.energy);
+            lastSendData = now;
+        }
+
+        // Nếu trước đó là lỗi, chuyển lại LED ON
+        // if (currentLedState != WiFiLedStatus::ON)
+        //{
+        //    wifiLedStatus.setState(WiFiLedStatus::ON);
+        //    currentLedState = WiFiLedStatus::ON;
+        //}
+    }
+    else
+    {
+        Serial.println("⚠️ Không đọc được dữ liệu từ PZEM");
+        if (currentLedState != WiFiLedStatus::BLINK_SLOW)
+        {
+            wifiLedStatus.setState(WiFiLedStatus::BLINK_SLOW);
+            currentLedState = WiFiLedStatus::BLINK_SLOW;
+        }
+    }
+
+    wifiLedStatus.update();
+
+    // Không delay để LED update mượt
+}
+
+/*
+void loop()
+{
+
     // Handle MQTT connection and messages
     dataSender.loop();
 
@@ -71,8 +151,14 @@ void loop()
         Serial.println("🔄 Kiểm tra kết nối WiFi...");
         if (!networkManager.isConnected())
         {
+            wifiLedStatus.setState(WiFiLedStatus::BLINK_FAST);
             Serial.println("⚠️ Mất kết nối WiFi! Đang thử kết nối lại...");
             networkManager.reconnect();
+        }
+        else
+        {
+            wifiLedStatus.setState(WiFiLedStatus::ON);
+            Serial.println("✅ Kết nối WiFi ổn định.");
         }
         lastWifiCheck = millis();
     }
@@ -89,7 +175,9 @@ void loop()
     else
     {
         Serial.println("⚠️ Không đọc được dữ liệu từ PZEM");
+        wifiLedStatus.setState(WiFiLedStatus::BLINK_SLOW);
     }
-
+    wifiLedStatus.update();
     delay(10000); // Gửi mỗi 10 giây
 }
+    */

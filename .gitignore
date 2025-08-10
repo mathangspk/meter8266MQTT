@@ -2,3 +2,6 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+.dashboard/node_modules
+.dashboard/package-lock.json
+.dashboard/.env

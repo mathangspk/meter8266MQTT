@@ -3,6 +3,7 @@ const mqtt = require('mqtt');
 const moment = require('moment');
 const db = require('../db/database');
 const { broadcastToClients } = require('../ws/websocket');
+require('dotenv').config();
 
 const MQTT_PORT = process.env.MQTT_PORT || 1883;
 
@@ -11,7 +12,9 @@ let mqttClient;
 function initMQTT() {
     mqttClient = mqtt.connect(`mqtt://localhost:${MQTT_PORT}`, {
         clientId: 'meter-server',
-        clean: true
+        clean: true,
+        username: process.env.MQTT_USERNAME || '',
+        password: process.env.MQTT_PASSWORD || ''
     });
 
     mqttClient.on('connect', () => {

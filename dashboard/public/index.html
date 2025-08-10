@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Meter Dashboard</title>
+    <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+
+<body>
+    <header>
+        <h1>Smart Meter Dashboard</h1>
+    </header>
+    <nav>
+        <button onclick="UI.showDashboard()">Dashboard</button>
+        <button onclick="UI.showDeviceList()">Devices</button>
+        <button onclick="UI.showUserRegister()">Register</button>
+        <button onclick="UI.showUserLogin()">Login</button>
+    </nav>
+    <main id="content">
+        <!-- Dynamic content will be injected here -->
+    </main>
+
+    <script src="assets/js/utils.js"></script>
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/ui.js"></script>
+    <script src="assets/js/app.js"></script>
+</body>
+
+</html>

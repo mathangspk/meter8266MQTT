@@ -1,0 +1,65 @@
+<section>
+    <h2>Device Detail</h2>
+    <p><strong>Serial:</strong> <span id="deviceSerial"></span></p>
+    <p><strong>Name:</strong> <span id="deviceName"></span></p>
+    <p><strong>Location:</strong> <span id="deviceLocation"></span></p>
+    <p><strong>Status:</strong> <span id="deviceStatus"></span></p>
+    <p><strong>Last Seen:</strong> <span id="deviceLastSeen"></span></p>
+    <hr>
+    <p><strong>Voltage:</strong> <span id="deviceVoltage"></span> V</p>
+    <p><strong>Current:</strong> <span id="deviceCurrent"></span> A</p>
+    <p><strong>Power:</strong> <span id="devicePower"></span> W</p>
+    <p><strong>Energy:</strong> <span id="deviceEnergy"></span> kWh</p>
+    <hr>
+    <div>
+        <label for="recordCount">Hiển thị:</label>
+        <select id="recordCount">
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="30">30</option>
+        </select>
+        <span>record mới nhất</span>
+    </div>
+    <table id="readingTable" border="1" style="margin-top:10px;">
+        <thead>
+            <tr>
+                <th>Thời gian</th>
+                <th>Voltage (V)</th>
+                <th>Current (A)</th>
+                <th>Power (W)</th>
+                <th>Energy (kWh)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Dữ liệu sẽ được JS render vào đây -->
+        </tbody>
+    </table>
+    <hr>
+    <h3>Thống kê</h3>
+    <label>Chế độ:
+        <select id="statsMode">
+            <option value="day">Ngày</option>
+            <option value="week">Tuần</option>
+            <option value="month">Tháng</option>
+            <option value="year">Năm</option>
+        </select>
+    </label>
+    <label>Ngày bắt đầu:
+        <input type="date" id="statsStart">
+    </label>
+    <button id="loadStatsBtn">Tải dữ liệu</button>
+
+    <table id="statsTable" border="1" style="margin-top:10px;">
+        <thead>
+            <tr>
+                <th>Khoảng</th>
+                <th>Volt Min</th>
+                <th>Volt Max</th>
+                <th>Amp Min</th>
+                <th>Amp Max</th>
+                <th>KWh</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</section>

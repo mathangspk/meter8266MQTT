@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>⚡ Energy Monitor Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 text-gray-800 font-sans">
+    <header class="bg-white shadow p-4">
+        <h1 class="text-2xl font-bold text-center">⚡ Energy Monitor Dashboard</h1>
+    </header>
+
+    <main class="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Devices List -->
+        <section class="bg-white rounded shadow p-4 col-span-1">
+            <h2 class="text-lg font-semibold mb-2">📟 Devices</h2>
+            <ul id="deviceList" class="space-y-2 text-sm">
+                <!-- Device items will be populated here -->
+            </ul>
+        </section>
+
+        <!-- Live Stats (Selected Device) -->
+        <section class="bg-white rounded shadow p-4 col-span-2">
+            <h2 class="text-lg font-semibold mb-4">📈 Live Readings</h2>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div><strong>Device ID:</strong> <span id="device_id">-</span></div>
+                <div><strong>Serial #:</strong> <span id="serial_number">-</span></div>
+                <div><strong>Voltage:</strong> <span id="voltage">-</span> V</div>
+                <div><strong>Current:</strong> <span id="current">-</span> A</div>
+                <div><strong>Power:</strong> <span id="power">-</span> W</div>
+                <div><strong>Energy:</strong> <span id="energy">-</span> kWh</div>
+            </div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

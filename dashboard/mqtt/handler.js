@@ -6,11 +6,11 @@ const { broadcastToClients } = require('../ws/websocket');
 require('dotenv').config();
 
 const MQTT_PORT = process.env.MQTT_PORT || 1883;
-
+const MQTT_IP = process.env.MQTT_IP || 'localhost';
 let mqttClient;
 
 function initMQTT() {
-    mqttClient = mqtt.connect(`mqtt://localhost:${MQTT_PORT}`, {
+    mqttClient = mqtt.connect(`mqtt://${MQTT_IP}:${MQTT_PORT}`, {
         clientId: 'meter-server',
         clean: true,
         username: process.env.MQTT_USERNAME || '',

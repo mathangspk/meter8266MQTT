@@ -1,136 +1,163 @@
 const express = require('express');
-const db = require('../db/database');
+const { getDevicesCollection, getMeterReadingsCollection } = require('../db/mongodb');
 const router = express.Router();
 
 /**
  * Lấy tất cả thiết bị (order by last_seen desc)
  */
-router.get('/', (req, res) => {
-    db.all(`SELECT * FROM devices ORDER BY last_seen DESC`, (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
-    });
+router.get('/', async (req, res) => {
+    try {
+        const devicesCollection = await getDevicesCollection();
+        const devices = await devicesCollection
+            .find({})
+            .sort({ last_seen: -1 })
+            .toArray();
+        res.json(devices);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
 });
 
 /**
  * Lấy thiết bị theo username
  */
-router.get('/by-user/:username', (req, res) => {
+router.get('/by-user/:username', async (req, res) => {
     const { username } = req.params;
-    db.all(`SELECT * FROM devices WHERE username = ?`, [username], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
-    });
+    try {
+        const devicesCollection = await getDevicesCollection();
+        const devices = await devicesCollection
+            .find({ username })
+            .toArray();
+        res.json(devices);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
 });
 
 /**
  * Lấy thiết bị theo serial_number
  */
-router.get('/by-serial/:serial_number', (req, res) => {
+router.get('/by-serial/:serial_number', async (req, res) => {
     const { serial_number } = req.params;
-    db.get(`SELECT * FROM devices WHERE serial_number = ?`, [serial_number], (err, row) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(row);
-    });
+    try {
+        const devicesCollection = await getDevicesCollection();
+        const device = await devicesCollection.findOne({ serial_number });
+        res.json(device);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
 });
 
 /**
  * Lấy reading mới nhất theo serial_number
  */
-router.get('/serial/:serial_number/latest-reading', (req, res) => {
+router.get('/serial/:serial_number/latest-reading', async (req, res) => {
     const { serial_number } = req.params;
-    db.get(
-        `SELECT voltage, current, power, energy, timestamp
-         FROM meter_readings
-         WHERE serial_number = ?
-         ORDER BY timestamp DESC
-         LIMIT 1`,
-        [serial_number],
-        (err, row) => {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json(row || {});
-        }
-    );
+    try {
+        const readingsCollection = await getMeterReadingsCollection();
+        const reading = await readingsCollection
+            .findOne(
+                { serial_number },
+                { projection: { voltage: 1, current: 1, power: 1, energy: 1, timestamp: 1, _id: 0 } }
+            );
+        res.json(reading || {});
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
 });
 
 /**
  * Lấy readings theo serial_number
  */
-router.get('/serial/:serial_number/readings', (req, res) => {
+router.get('/serial/:serial_number/readings', async (req, res) => {
     const { serial_number } = req.params;
     const limit = parseInt(req.query.limit, 10) || 10;
 
-    db.all(
-        `SELECT voltage, current, power, energy, timestamp
-         FROM meter_readings
-         WHERE serial_number = ?
-         ORDER BY timestamp DESC
-         LIMIT ?`,
-        [serial_number, limit],
-        (err, rows) => {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json(rows);
-        }
-    );
+    try {
+        const readingsCollection = await getMeterReadingsCollection();
+        const readings = await readingsCollection
+            .find(
+                { serial_number },
+                { projection: { voltage: 1, current: 1, power: 1, energy: 1, timestamp: 1, _id: 0 } }
+            )
+            .sort({ timestamp: -1 })
+            .limit(limit)
+            .toArray();
+        res.json(readings);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
 });
 
 /**
  * Lấy readings theo device_id
  */
-router.get('/id/:deviceId/readings', (req, res) => {
+router.get('/id/:deviceId/readings', async (req, res) => {
     const { deviceId } = req.params;
     const { limit = 100, from, to } = req.query;
 
-    let query = `SELECT * FROM meter_readings WHERE device_id = ?`;
-    const params = [deviceId];
+    try {
+        const readingsCollection = await getMeterReadingsCollection();
+        let filter = { device_id: deviceId };
 
-    if (from && to) {
-        query += ` AND timestamp BETWEEN ? AND ?`;
-        params.push(from, to);
+        if (from && to) {
+            filter.timestamp = { $gte: new Date(from), $lte: new Date(to) };
+        }
+
+        const readings = await readingsCollection
+            .find(filter)
+            .sort({ timestamp: -1 })
+            .limit(parseInt(limit))
+            .toArray();
+        res.json(readings);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
     }
-
-    query += ` ORDER BY timestamp DESC LIMIT ?`;
-    params.push(parseInt(limit));
-
-    db.all(query, params, (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
-    });
 });
 
 /**
  * Thêm thiết bị mới
  */
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
     const { serial_number, device_id, name, location, status, username } = req.body;
     if (!serial_number || !device_id || !username) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const query = `
-        INSERT INTO devices (serial_number, device_id, name, location, status, username)
-        VALUES (?, ?, ?, ?, ?, ?)
-    `;
-
-    db.run(
-        query,
-        [serial_number, device_id, name || '', location || '', status || 'active', username],
-        function (err) {
-            if (err) return res.status(500).json({ error: err.message });
-            res.status(201).json({ id: this.lastID });
-        }
-    );
+    try {
+        const devicesCollection = await getDevicesCollection();
+        const result = await devicesCollection.insertOne({
+            serial_number,
+            device_id,
+            name: name || '',
+            location: location || '',
+            status: status || 'active',
+            username,
+            created_at: new Date()
+        });
+        res.status(201).json({ id: result.insertedId });
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
 });
 
 /**
  * Xóa thiết bị theo id
  */
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
     const { id } = req.params;
-    db.run('DELETE FROM devices WHERE id = ?', [id], function (err) {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        const devicesCollection = await getDevicesCollection();
+        const { ObjectId } = require('mongodb');
+        const result = await devicesCollection.deleteOne({ _id: new ObjectId(id) });
+
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ error: 'Device not found' });
+        }
         res.json({ message: 'Device deleted' });
-    });
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
 });
 
 module.exports = router;

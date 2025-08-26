@@ -1,6 +1,14 @@
 const API_BASE = '/api';
 
 const API = {
+    logoutUser() {
+        try {
+            localStorage.removeItem('username');
+            return { message: 'Logged out' };
+        } catch (_) {
+            return { message: 'Logged out' };
+        }
+    },
     async registerUser(data) {
         const response = await fetch(`${API_BASE}/register`, {
             method: 'POST',

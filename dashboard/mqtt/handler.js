@@ -1,7 +1,7 @@
 // mqtt/handler.js
 const mqtt = require('mqtt');
 const moment = require('moment');
-const db = require('../db/database');
+const { getDevicesCollection, getMeterReadingsCollection } = require('../db/mongodb');
 const { broadcastToClients } = require('../ws/websocket');
 require('dotenv').config();
 
@@ -31,13 +31,13 @@ function initMQTT() {
         });
     });
 
-    mqttClient.on('message', (topic, message) => {
+    mqttClient.on('message', async (topic, message) => {
         try {
             const data = JSON.parse(message.toString());
             const deviceId = topic.split('/')[1];
 
-            storeDeviceInfo(data, deviceId);
-            storeMeterReading(data, deviceId);
+            await storeDeviceInfo(data, deviceId);
+            await storeMeterReading(data, deviceId);
             broadcastToClients(data);
         } catch (error) {
             console.error('Error processing MQTT message:', error);
@@ -49,38 +49,51 @@ function initMQTT() {
     });
 }
 
-function storeDeviceInfo(data, deviceId) {
+async function storeDeviceInfo(data, deviceId) {
     const { serial_number } = data;
-    const now = moment().format('YYYY-MM-DD HH:mm:ss');
+    const now = new Date();
 
-    db.run(`INSERT INTO devices (serial_number, device_id, last_seen)
-            VALUES (?, ?, ?)
-            ON CONFLICT(serial_number) DO UPDATE SET
-                device_id = excluded.device_id,
-                last_seen = excluded.last_seen`,
-        [serial_number, deviceId, now],
-        (err) => {
-            if (err) {
-                console.error('Error storing device info:', err);
-            }
-        });
+    try {
+        const devicesCollection = await getDevicesCollection();
+        await devicesCollection.updateOne(
+            { serial_number },
+            {
+                $set: {
+                    device_id: deviceId,
+                    last_seen: now
+                },
+                $setOnInsert: {
+                    serial_number,
+                    created_at: now
+                }
+            },
+            { upsert: true }
+        );
+    } catch (error) {
+        console.error('Error storing device info:', error);
+    }
 }
 
-function storeMeterReading(data, deviceId) {
+async function storeMeterReading(data, deviceId) {
     const { serial_number, voltage, current, power, energy, timestamp } = data;
     console.log(`Received data from device ${deviceId} | Serial: ${serial_number}`);
     console.log(`Voltage: ${voltage} V | Current: ${current} A | Power: ${power} W | Energy: ${energy} kWh`);
 
-    db.run(`INSERT INTO meter_readings (device_id, serial_number, voltage, current, power, energy, timestamp) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [deviceId, serial_number, voltage, current, power, energy, timestamp || moment().format()],
-        (err) => {
-            if (err) {
-                console.error('Error storing meter reading:', err);
-            } else {
-                console.log(`Stored reading for device ${deviceId}`);
-            }
+    try {
+        const readingsCollection = await getMeterReadingsCollection();
+        await readingsCollection.insertOne({
+            device_id: deviceId,
+            serial_number,
+            voltage,
+            current,
+            power,
+            energy,
+            timestamp: timestamp ? new Date(timestamp) : new Date()
         });
+        console.log(`Stored reading for device ${deviceId}`);
+    } catch (error) {
+        console.error('Error storing meter reading:', error);
+    }
 }
 
 function shutdown() {

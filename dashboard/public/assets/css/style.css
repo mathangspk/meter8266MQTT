@@ -12,7 +12,7 @@ header {
     text-align: center;
 }
 
-nav {
+nav.legacy-nav {
     background: #eee;
     padding: 0.5em;
     display: flex;
@@ -20,7 +20,7 @@ nav {
     gap: 1em;
 }
 
-nav button {
+nav.legacy-nav button {
     padding: 0.5em 1em;
     cursor: pointer;
     background: #3f51b5;

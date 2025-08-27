@@ -1,138 +1,171 @@
 // routes/readings.js
 const express = require('express');
-const db = require('../db/database');
+const { getMeterReadingsCollection } = require('../db/mongodb');
 
 const router = express.Router();
 
-// Lấy tất cả readings, lọc theo thiết bị nếu có
-router.get('/', (req, res) => {
-    const { limit = 100, device_id } = req.query;
+// Lấy tất cả readings
+router.get('/', async (req, res) => {
+    try {
+        const { limit = 100, device_id } = req.query;
+        const readingsCollection = await getMeterReadingsCollection();
 
-    let query = `SELECT * FROM meter_readings`;
-    let params = [];
+        let filter = {};
+        if (device_id) filter.device_id = device_id;
 
-    if (device_id) {
-        query += ` WHERE device_id = ?`;
-        params.push(device_id);
+        const readings = await readingsCollection
+            .find(filter)
+            .sort({ timestamp: -1 })
+            .limit(parseInt(limit))
+            .toArray();
+
+        res.json(readings);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
     }
-
-    query += ` ORDER BY timestamp DESC LIMIT ?`;
-    params.push(parseInt(limit));
-
-    db.all(query, params, (err, rows) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        res.json(rows);
-    });
 });
-router.get('/:serial_number/latest-reading', (req, res) => {
-    console.log('Fetching latest reading for serial:', req.params.serial_number);
-    console.log('Query params:', req.query);
+
+// Lấy reading mới nhất
+router.get('/:serial_number/latest-reading', async (req, res) => {
     const { serial_number } = req.params;
-    db.get(
-        `SELECT voltage, current, power, energy, timestamp FROM meter_readings WHERE serial_number = ? ORDER BY timestamp DESC LIMIT 1`,
-        [serial_number],
-        (err, row) => {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json(row || {});
-        }
-    );
+    try {
+        const readingsCollection = await getMeterReadingsCollection();
+        const reading = await readingsCollection.findOne(
+            { serial_number },
+            { projection: { voltage: 1, current: 1, power: 1, energy: 1, timestamp: 1, _id: 0 } }
+        );
+        res.json(reading || {});
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
 });
-router.get('/:serial_number/readings', (req, res) => {
-    console.log('Fetching readings for serial:', req.params.serial_number);
-    console.log('Query params:', req.query);
 
+// Lấy nhiều readings theo serial
+router.get('/:serial_number/readings', async (req, res) => {
     const { serial_number } = req.params;
-
     const limit = parseInt(req.query.limit, 10) || 10;
-    db.all(
-        `SELECT voltage, current, power, energy, timestamp FROM meter_readings WHERE serial_number = ? ORDER BY timestamp DESC LIMIT ?`,
-        [serial_number, limit],
-        (err, rows) => {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json(rows);
-        }
-    );
+
+    try {
+        const readingsCollection = await getMeterReadingsCollection();
+        const readings = await readingsCollection
+            .find(
+                { serial_number },
+                { projection: { voltage: 1, current: 1, power: 1, energy: 1, timestamp: 1, _id: 0 } }
+            )
+            .sort({ timestamp: -1 })
+            .limit(limit)
+            .toArray();
+
+        res.json(readings);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
 });
 
-router.get('/:serial_number/stats', (req, res) => {
+// ==========================
+// 📊 API thống kê (day, week, month, year)
+// ==========================
+router.get('/:serial_number/stats', async (req, res) => {
     const { serial_number } = req.params;
     const { mode = 'day', start } = req.query;
 
-    if (!start) {
-        return res.status(400).json({ error: 'Missing start date' });
-    }
+    if (!start) return res.status(400).json({ error: 'Missing start date' });
 
-    const tzOffset = '+7 hours'; // giờ VN
-    const tzOffsetNeg = '-0 hours'; // để đổi ngược sang UTC cho DB
+    try {
+        const readingsCollection = await getMeterReadingsCollection();
+        const startDate = new Date(start + "T00:00:00+07:00"); // chuẩn hóa UTC+7
+        let endDate, groupBy, labelFormat;
 
-    let groupFormat, endDateSql, labelFormat;
-
-    switch (mode) {
-        case 'day':
-            groupFormat = "%Y-%m-%d %H:00:00";
-            labelFormat = "%H:%M";
-            endDateSql = `datetime(datetime(?, '${tzOffsetNeg}'), '+1 day')`; // start local -> UTC, cộng 1 ngày
-            break;
-        case 'week':
-            groupFormat = "%Y-%m-%d";
-            labelFormat = "%d/%m";
-            endDateSql = `datetime(datetime(?, '${tzOffsetNeg}'), '+7 day')`;
-            break;
-        case 'month':
-            groupFormat = "%Y-%m-%d";
-            labelFormat = "%d/%m";
-            endDateSql = `datetime(datetime(?, '${tzOffsetNeg}'), '+1 month')`;
-            break;
-        case 'year':
-            groupFormat = "%Y-%m";
-            labelFormat = "%m/%Y";
-            endDateSql = `datetime(datetime(?, '${tzOffsetNeg}'), '+1 year')`;
-            break;
-        default:
-            return res.status(400).json({ error: 'Invalid mode' });
-    }
-
-    const query = `
-        SELECT
-            strftime('${groupFormat}', datetime(timestamp, '${tzOffset}')) AS period_start,
-            strftime('${labelFormat}', datetime(timestamp, '${tzOffset}')) AS label,
-            MIN(voltage) AS volt_min,
-            MAX(voltage) AS volt_max,
-            MIN(current) AS amp_min,
-            MAX(current) AS amp_max,
-            MAX(energy) - MIN(energy) AS kwh_used
-        FROM meter_readings
-        WHERE serial_number = ?
-          AND timestamp >= datetime(?, '${tzOffsetNeg}')
-          AND timestamp < ${endDateSql}
-        GROUP BY period_start
-        ORDER BY period_start ASC
-    `;
-
-    db.all(query, [serial_number, start, start], (err, rows) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ error: err.message });
+        switch (mode) {
+            case 'day':
+                endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
+                groupBy = { $dateToString: { format: "%Y-%m-%d %H:00:00", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
+                labelFormat = { $dateToString: { format: "%H:00", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
+                break;
+            case 'week':
+                endDate = new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+                groupBy = { $dateToString: { format: "%Y-%m-%d", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
+                labelFormat = { $dateToString: { format: "%d/%m", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
+                break;
+            case 'month':
+                endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 1);
+                groupBy = { $dateToString: { format: "%Y-%m-%d", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
+                labelFormat = { $dateToString: { format: "%d/%m", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
+                break;
+            case 'year':
+                endDate = new Date(startDate.getFullYear() + 1, 0, 1);
+                groupBy = { $dateToString: { format: "%Y-%m", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
+                labelFormat = { $dateToString: { format: "%m/%Y", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
+                break;
+            default:
+                return res.status(400).json({ error: 'Invalid mode' });
         }
 
-        const labels = rows.map(r => r.label);
-        const datasets = {
-            volt_min: rows.map(r => r.volt_min),
-            volt_max: rows.map(r => r.volt_max),
-            amp_min: rows.map(r => r.amp_min),
-            amp_max: rows.map(r => r.amp_max),
-            kwh_used: rows.map(r => r.kwh_used)
-        };
+        const pipeline = [
+            {
+                $match: {
+                    serial_number,
+                    timestamp: { $gte: startDate, $lt: endDate }
+                }
+            },
+            // Phải sort trước khi group!
+            { $sort: { timestamp: 1 } },
+            {
+                $group: {
+                    _id: groupBy,
+                    label: { $first: labelFormat },
+                    volt_min: { $min: "$voltage" },
+                    volt_max: { $max: "$voltage" },
+                    amp_min: { $min: "$current" },
+                    amp_max: { $max: "$current" },
+                    energy_start: { $first: "$energy" }, // sau sort => giá trị nhỏ nhất thời gian
+                    energy_end: { $last: "$energy" }     // sau sort => giá trị lớn nhất thời gian
+                }
+            },
+            {
+                $addFields: {
+                    kwh_used: { $subtract: ["$energy_end", "$energy_start"] }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ];
 
-        res.json({
-            labels,
-            datasets,
-            raw: rows
+
+        const results = await readingsCollection.aggregate(pipeline).toArray();
+
+        // =============== Build fixed buckets ===============
+        const pad2 = (n) => String(n).padStart(2, '0');
+        const bucketLabels = [];
+        if (mode === 'day') {
+            for (let h = 0; h < 24; h++) bucketLabels.push(`${pad2(h)}:00`);
+        } else if (mode === 'week') {
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(startDate.getTime() + i * 24 * 3600 * 1000);
+                bucketLabels.push(`${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}`);
+            }
+        } else if (mode === 'month') {
+            const year = startDate.getFullYear();
+            const month = startDate.getMonth();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            for (let d = 1; d <= daysInMonth; d++) {
+                bucketLabels.push(`${pad2(d)}/${pad2(month + 1)}`);
+            }
+        } else if (mode === 'year') {
+            const year = startDate.getFullYear();
+            for (let m = 1; m <= 12; m++) bucketLabels.push(`${pad2(m)}/${year}`);
+        }
+
+        const byLabel = new Map(results.map(r => [r.label, r]));
+        const filled = bucketLabels.map(label => {
+            const r = byLabel.get(label);
+            return r || { label, volt_min: "N/A", volt_max: "N/A", amp_min: "N/A", amp_max: "N/A", kwh_used: 0 };
         });
-    });
-});
 
+        res.json({ labels: bucketLabels, raw: filled });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: error.message });
+    }
+});
 
 module.exports = router;

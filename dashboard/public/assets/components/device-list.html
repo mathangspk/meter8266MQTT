@@ -1,5 +1,16 @@
 <section>
-    <h2>Device List</h2>
-    <button id="addDeviceBtn">Thêm thiết bị</button>
-    <ul id="deviceContainer">Loading devices...</ul>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h5 mb-0">Danh sách thiết bị</h2>
+        <button id="addDeviceBtn" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Thêm thiết bị</button>
+    </div>
+    <div class="row g-2 mb-3">
+        <div class="col-sm-6 col-md-4">
+            <input type="text" id="deviceSearch" class="form-control" placeholder="Tìm theo tên hoặc serial...">
+        </div>
+    </div>
+    <div id="deviceLoading" class="text-center my-3">
+        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+    </div>
+    <ul id="deviceContainer" class="list-group"></ul>
+    <div id="deviceEmpty" class="alert alert-warning mt-3 d-none">Chưa có thiết bị nào.</div>
 </section>

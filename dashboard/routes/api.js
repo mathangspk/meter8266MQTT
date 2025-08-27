@@ -1,12 +1,12 @@
 const express = require('express');
 const devicesRouter = require('./devices_check');
 const readingsRouter = require('./readings');
-const db = require('../db/database');
+const { getUsersCollection } = require('../db/mongodb');
 
 const router = express.Router();
 
 // Đăng ký tài khoản người dùng
-router.post('/register', (req, res) => {
+router.post('/register', async (req, res) => {
     console.log('Received registration request:', req.body);
     const { username, email, password } = req.body;
     console.log('Registering user:', username);
@@ -14,26 +14,31 @@ router.post('/register', (req, res) => {
         return res.status(400).json({ error: 'Missing username, email or password' });
     }
 
-    const createdAt = new Date().toISOString();
+    try {
+        const usersCollection = await getUsersCollection();
+        const createdAt = new Date();
 
-    const query = `INSERT INTO users (username, email, password, created_at) VALUES (?, ?, ?, ?)`;
-    db.run(query, [username, email, password, createdAt], function (err) {
-        if (err) {
-            if (err.code === 'SQLITE_CONSTRAINT') {
-                return res.status(409).json({ error: 'Username or email already exists' });
-            }
-            return res.status(500).json({ error: err.message });
-        }
+        const result = await usersCollection.insertOne({
+            username,
+            email,
+            password,
+            created_at: createdAt
+        });
 
         res.status(201).json({
             message: 'User registered successfully',
-            user_id: this.lastID
+            user_id: result.insertedId
         });
-    });
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({ error: 'Username or email already exists' });
+        }
+        return res.status(500).json({ error: error.message });
+    }
 });
 
 // Đăng nhập người dùng
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
     console.log('Received login request:', req.body);
     const { username, password } = req.body;
     console.log('Logging in user:', username);
@@ -41,33 +46,42 @@ router.post('/login', (req, res) => {
         return res.status(400).json({ error: 'Missing username or password' });
     }
 
-    // Kiểm tra thông tin đăng nhập
-    db.get(`SELECT * FROM users WHERE username = ? AND password = ?`, [username, password], (err, user) => {
-        if (err) return res.status(500).json({ error: err.message });
-        if (!user) return res.status(401).json({ error: 'Invalid username or password' });
+    try {
+        const usersCollection = await getUsersCollection();
+        const user = await usersCollection.findOne({ username, password });
+
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid username or password' });
+        }
 
         res.json({
             message: 'Login successful',
-            user_id: user.id,
+            user_id: user._id,
             username: user.username
         });
-    });
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
 });
 
 // Route thống kê
-router.get('/stats', (req, res) => {
-    db.get(`SELECT COUNT(*) as total_readings FROM meter_readings`, (err, total) => {
-        if (err) return res.status(500).json({ error: err.message });
+router.get('/stats', async (req, res) => {
+    try {
+        const { getMeterReadingsCollection, getDevicesCollection } = require('../db/mongodb');
 
-        db.get(`SELECT COUNT(*) as total_devices FROM devices`, (err, devices) => {
-            if (err) return res.status(500).json({ error: err.message });
+        const readingsCollection = await getMeterReadingsCollection();
+        const devicesCollection = await getDevicesCollection();
 
-            res.json({
-                total_readings: total.total_readings,
-                total_devices: devices.total_devices
-            });
+        const totalReadings = await readingsCollection.countDocuments();
+        const totalDevices = await devicesCollection.countDocuments();
+
+        res.json({
+            total_readings: totalReadings,
+            total_devices: totalDevices
         });
-    });
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
 });
 
 // Mount sub-routes

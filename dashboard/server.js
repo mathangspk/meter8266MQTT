@@ -5,7 +5,7 @@ const cors = require('cors');
 const path = require('path');
 const WebSocket = require('ws');
 
-const db = require('./db/database');
+const { connectToMongoDB, closeConnection } = require('./db/mongodb');
 const mqttHandler = require('./mqtt/handler');
 const { setupWebSocket } = require('./ws/websocket');
 const apiRouter = require('./routes/api');
@@ -22,19 +22,7 @@ app.use(express.static('public'));
 // Routes
 app.use('/api', apiRouter);
 
-// Stats route
-app.get('/api/stats', (req, res) => {
-    db.get(`SELECT COUNT(*) as total_readings FROM meter_readings`, (err, total) => {
-        if (err) return res.status(500).json({ error: err.message });
-        db.get(`SELECT COUNT(*) as total_devices FROM devices`, (err, devices) => {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json({
-                total_readings: total.total_readings,
-                total_devices: devices.total_devices
-            });
-        });
-    });
-});
+// Stats route - moved to api.js
 
 // Serve dashboard
 app.get('/', (req, res) => {
@@ -46,16 +34,30 @@ app.listen(HTTP_PORT, () => {
     console.log(`HTTP server running on port ${HTTP_PORT}`);
 });
 
-// WebSocket
-setupWebSocket(WS_PORT);
+// Initialize MongoDB and start services
+async function startServices() {
+    try {
+        await connectToMongoDB();
 
-// MQTT
-mqttHandler.initMQTT();
+        // WebSocket
+        setupWebSocket(WS_PORT);
+
+        // MQTT
+        mqttHandler.initMQTT();
+
+        console.log('All services started successfully');
+    } catch (error) {
+        console.error('Failed to start services:', error);
+        process.exit(1);
+    }
+}
+
+startServices();
 
 // Graceful shutdown
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
     console.log('Shutting down...');
     mqttHandler.shutdown();
-    db.close();
+    await closeConnection();
     process.exit(0);
 });

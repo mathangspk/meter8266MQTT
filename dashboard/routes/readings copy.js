@@ -4,14 +4,16 @@ const { getMeterReadingsCollection } = require('../db/mongodb');
 
 const router = express.Router();
 
-// Lấy tất cả readings
+// Lấy tất cả readings, lọc theo thiết bị nếu có
 router.get('/', async (req, res) => {
     try {
         const { limit = 100, device_id } = req.query;
         const readingsCollection = await getMeterReadingsCollection();
 
         let filter = {};
-        if (device_id) filter.device_id = device_id;
+        if (device_id) {
+            filter.device_id = device_id;
+        }
 
         const readings = await readingsCollection
             .find(filter)
@@ -24,24 +26,28 @@ router.get('/', async (req, res) => {
         return res.status(500).json({ error: error.message });
     }
 });
-
-// Lấy reading mới nhất
 router.get('/:serial_number/latest-reading', async (req, res) => {
+    console.log('Fetching latest reading for serial:', req.params.serial_number);
+    console.log('Query params:', req.query);
     const { serial_number } = req.params;
+
     try {
         const readingsCollection = await getMeterReadingsCollection();
-        const reading = await readingsCollection.findOne(
-            { serial_number },
-            { projection: { voltage: 1, current: 1, power: 1, energy: 1, timestamp: 1, _id: 0 } }
-        );
+        const reading = await readingsCollection
+            .findOne(
+                { serial_number },
+                { projection: { voltage: 1, current: 1, power: 1, energy: 1, timestamp: 1, _id: 0 } }
+            );
+
         res.json(reading || {});
     } catch (error) {
         return res.status(500).json({ error: error.message });
     }
 });
-
-// Lấy nhiều readings theo serial
 router.get('/:serial_number/readings', async (req, res) => {
+    console.log('Fetching readings for serial:', req.params.serial_number);
+    console.log('Query params:', req.query);
+
     const { serial_number } = req.params;
     const limit = parseInt(req.query.limit, 10) || 10;
 
@@ -62,40 +68,39 @@ router.get('/:serial_number/readings', async (req, res) => {
     }
 });
 
-// ==========================
-// 📊 API thống kê (day, week, month, year)
-// ==========================
 router.get('/:serial_number/stats', async (req, res) => {
     const { serial_number } = req.params;
     const { mode = 'day', start } = req.query;
 
-    if (!start) return res.status(400).json({ error: 'Missing start date' });
+    if (!start) {
+        return res.status(400).json({ error: 'Missing start date' });
+    }
 
     try {
         const readingsCollection = await getMeterReadingsCollection();
-        const startDate = new Date(start + "T00:00:00+07:00"); // chuẩn hóa UTC+7
+        const startDate = new Date(start);
         let endDate, groupBy, labelFormat;
 
         switch (mode) {
             case 'day':
                 endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
-                groupBy = { $dateToString: { format: "%Y-%m-%d %H:00:00", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
-                labelFormat = { $dateToString: { format: "%H:00", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
+                groupBy = { $dateToString: { format: "%Y-%m-%d %H:00:00", date: { $add: ["$timestamp", 7 * 60 * 60 * 1000] } } };
+                labelFormat = { $dateToString: { format: "%H:%M", date: { $add: ["$timestamp", 7 * 60 * 60 * 1000] } } };
                 break;
             case 'week':
                 endDate = new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-                groupBy = { $dateToString: { format: "%Y-%m-%d", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
-                labelFormat = { $dateToString: { format: "%d/%m", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
+                groupBy = { $dateToString: { format: "%Y-%m-%d", date: { $add: ["$timestamp", 7 * 60 * 60 * 1000] } } };
+                labelFormat = { $dateToString: { format: "%d/%m", date: { $add: ["$timestamp", 7 * 60 * 60 * 1000] } } };
                 break;
             case 'month':
-                endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 1);
-                groupBy = { $dateToString: { format: "%Y-%m-%d", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
-                labelFormat = { $dateToString: { format: "%d/%m", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
+                endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, startDate.getDate());
+                groupBy = { $dateToString: { format: "%Y-%m-%d", date: { $add: ["$timestamp", 7 * 60 * 60 * 1000] } } };
+                labelFormat = { $dateToString: { format: "%d/%m", date: { $add: ["$timestamp", 7 * 60 * 60 * 1000] } } };
                 break;
             case 'year':
-                endDate = new Date(startDate.getFullYear() + 1, 0, 1);
-                groupBy = { $dateToString: { format: "%Y-%m", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
-                labelFormat = { $dateToString: { format: "%m/%Y", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
+                endDate = new Date(startDate.getFullYear() + 1, startDate.getMonth(), startDate.getDate());
+                groupBy = { $dateToString: { format: "%Y-%m", date: { $add: ["$timestamp", 7 * 60 * 60 * 1000] } } };
+                labelFormat = { $dateToString: { format: "%m/%Y", date: { $add: ["$timestamp", 7 * 60 * 60 * 1000] } } };
                 break;
             default:
                 return res.status(400).json({ error: 'Invalid mode' });
@@ -104,12 +109,10 @@ router.get('/:serial_number/stats', async (req, res) => {
         const pipeline = [
             {
                 $match: {
-                    serial_number,
+                    serial_number: serial_number,
                     timestamp: { $gte: startDate, $lt: endDate }
                 }
             },
-            // Phải sort trước khi group!
-            { $sort: { timestamp: 1 } },
             {
                 $group: {
                     _id: groupBy,
@@ -118,8 +121,8 @@ router.get('/:serial_number/stats', async (req, res) => {
                     volt_max: { $max: "$voltage" },
                     amp_min: { $min: "$current" },
                     amp_max: { $max: "$current" },
-                    energy_start: { $first: "$energy" }, // sau sort => giá trị nhỏ nhất thời gian
-                    energy_end: { $last: "$energy" }     // sau sort => giá trị lớn nhất thời gian
+                    energy_start: { $min: "$energy" },
+                    energy_end: { $max: "$energy" }
                 }
             },
             {
@@ -127,45 +130,58 @@ router.get('/:serial_number/stats', async (req, res) => {
                     kwh_used: { $subtract: ["$energy_end", "$energy_start"] }
                 }
             },
-            { $sort: { _id: 1 } }
+            {
+                $sort: { _id: 1 }
+            }
         ];
 
-
         const results = await readingsCollection.aggregate(pipeline).toArray();
-
-        // =============== Build fixed buckets ===============
+        console.log(results);
+        // Build fixed buckets depending on mode and fill missing ones with zeros
+        const TZ_OFFSET_MS = 7 * 60 * 60 * 1000; // keep consistent with aggregation
         const pad2 = (n) => String(n).padStart(2, '0');
-        const bucketLabels = [];
+
+        let bucketLabels = [];
         if (mode === 'day') {
             for (let h = 0; h < 24; h++) bucketLabels.push(`${pad2(h)}:00`);
         } else if (mode === 'week') {
             for (let i = 0; i < 7; i++) {
-                const d = new Date(startDate.getTime() + i * 24 * 3600 * 1000);
-                bucketLabels.push(`${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}`);
+                const d = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000 + TZ_OFFSET_MS);
+                bucketLabels.push(`${pad2(d.getUTCDate())}/${pad2(d.getUTCMonth() + 1)}`);
             }
         } else if (mode === 'month') {
-            const year = startDate.getFullYear();
-            const month = startDate.getMonth();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            for (let d = 1; d <= daysInMonth; d++) {
-                bucketLabels.push(`${pad2(d)}/${pad2(month + 1)}`);
+            const year = startDate.getUTCFullYear();
+            const month = startDate.getUTCMonth();
+            const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+            for (let day = 1; day <= daysInMonth; day++) {
+                bucketLabels.push(`${pad2(day)}/${pad2(month + 1)}`);
             }
         } else if (mode === 'year') {
-            const year = startDate.getFullYear();
-            for (let m = 1; m <= 12; m++) bucketLabels.push(`${pad2(m)}/${year}`);
+            const year = startDate.getUTCFullYear();
+            for (let m = 0; m < 12; m++) bucketLabels.push(`${pad2(m + 1)}/${year}`);
         }
 
         const byLabel = new Map(results.map(r => [r.label, r]));
         const filled = bucketLabels.map(label => {
             const r = byLabel.get(label);
-            return r || { label, volt_min: "N/A", volt_max: "N/A", amp_min: "N/A", amp_max: "N/A", kwh_used: 0 };
+            return r || { label, volt_min: null, volt_max: null, amp_min: null, amp_max: null, kwh_used: 0 };
         });
 
-        res.json({ labels: bucketLabels, raw: filled });
+        const labels = filled.map(r => r.label);
+        const datasets = {
+            volt_min: filled.map(r => r.volt_min),
+            volt_max: filled.map(r => r.volt_max),
+            amp_min: filled.map(r => r.amp_min),
+            amp_max: filled.map(r => r.amp_max),
+            kwh_used: filled.map(r => r.kwh_used)
+        };
+
+        res.json({ labels, datasets, raw: filled });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ error: error.message });
     }
 });
+
 
 module.exports = router;

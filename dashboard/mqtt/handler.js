@@ -50,7 +50,16 @@ function initMQTT() {
 }
 
 async function storeDeviceInfo(data, deviceId) {
-    const { serial_number } = data;
+    console.log('data', data);
+    let serial_number = data.serial_number || 'none';
+    let ip_address = data.ip_address || 'none';
+    const updateFields = {
+        device_id: deviceId,
+        last_seen: new Date()
+    };
+    if (ip_address) {
+        updateFields.ip_address = ip_address;
+    }
     const now = new Date();
 
     try {
@@ -58,10 +67,7 @@ async function storeDeviceInfo(data, deviceId) {
         await devicesCollection.updateOne(
             { serial_number },
             {
-                $set: {
-                    device_id: deviceId,
-                    last_seen: now
-                },
+                $set: updateFields,
                 $setOnInsert: {
                     serial_number,
                     created_at: now

@@ -41,10 +41,10 @@ function updateDeviceList() {
 }
 
 function updateLiveStats(data) {
-    voltageEl.textContent = data.voltage.toFixed(1);
-    currentEl.textContent = data.current.toFixed(2);
-    powerEl.textContent = data.power.toFixed(1);
-    energyEl.textContent = data.energy.toFixed(2);
+    voltageEl.textContent = Utils.formatVoltage(data.voltage);
+    currentEl.textContent = Utils.formatCurrent(data.current);
+    powerEl.textContent = Utils.formatPower(data.power);
+    energyEl.textContent = Utils.formatEnergy(data.energy);
     deviceIdEl.textContent = data.device_id;
     serialNumberEl.textContent = data.serial_number;
 }

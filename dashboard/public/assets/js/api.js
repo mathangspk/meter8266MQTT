@@ -100,15 +100,14 @@ const API = {
     },
 
     async fetchLatestReading(serialNumber) {
-        const response = await fetch(`${API_BASE}/readings/${encodeURIComponent(serialNumber)}/latest-reading`);
+        const response = await fetch(`${API_BASE}/devices/serial/${encodeURIComponent(serialNumber)}/latest-reading`);
         if (!response.ok) return null;
         return await response.json();
     },
 
     async fetchRecentReadings(serialNumber, count) {
         console.log('Fetching recent readings for', serialNumber, 'with count', count);
-        //const response = await fetch(`${API_BASE}/devices/${encodeURIComponent(serialNumber)}/readings?limit=${count}`);
-        const response = await fetch(`${API_BASE}/readings/${encodeURIComponent(serialNumber)}/readings?limit=${count}`);
+        const response = await fetch(`${API_BASE}/devices/serial/${encodeURIComponent(serialNumber)}/readings?limit=${count}`);
         if (!response.ok) return [];
         return await response.json();
     },

@@ -100,4 +100,7 @@ const Sockets = (() => {
     };
 })();
 
+// Make Sockets globally available
+window.Sockets = Sockets;
+
 

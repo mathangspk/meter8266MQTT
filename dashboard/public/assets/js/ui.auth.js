@@ -1,4 +1,5 @@
 const AuthUI = {
+const AuthUI = {
     async showUserRegister() {
         if (window.latestReadingInterval) clearInterval(window.latestReadingInterval);
         const html = await fetch('assets/components/user-register.html').then(res => res.text());
@@ -42,5 +43,8 @@ const AuthUI = {
         });
     }
 };
+
+// Make AuthUI globally available
+window.AuthUI = AuthUI;
 
 

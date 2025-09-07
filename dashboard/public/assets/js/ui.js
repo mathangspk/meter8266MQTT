@@ -6,26 +6,39 @@ const UI = {
     showUserLogin: () => AuthUI.showUserLogin(),
     handleLoginForm: () => AuthUI.handleLoginForm(),
     updateAuthButton(isLoggedIn) {
-        const loginBtn = document.querySelector('nav button[onclick="UI.showUserLogin()"]');
-        const registerBtn = document.querySelector('nav button[onclick="UI.showUserRegister()"]');
-        const dashboardBtn = document.querySelector('nav button[onclick="UI.showDashboard()"]');
-        const deviceBtn = document.querySelector('nav button[onclick="UI.showDeviceList()"]');
+        const loginLink = document.getElementById('loginLink');
+        const registerLink = document.getElementById('registerLink');
+        const dashboardLink = document.querySelector('nav a[onclick="UI.showDashboard()"]');
+        const deviceLink = document.querySelector('nav a[onclick="UI.showDeviceList()"]');
+        const userDisplayName = document.getElementById('userDisplayName');
+
         if (isLoggedIn) {
-            loginBtn.textContent = 'Logout';
-            loginBtn.onclick = () => {
-                API.logoutUser && API.logoutUser();
-                UI.updateAuthButton(false);
-                alert('Logged out!');
-            };
-            if (registerBtn) registerBtn.style.display = 'none';
-            if (dashboardBtn) dashboardBtn.style.display = '';
-            if (deviceBtn) deviceBtn.style.display = '';
+            const username = localStorage.getItem('username') || 'User';
+            if (userDisplayName) userDisplayName.textContent = username;
+
+            if (loginLink) {
+                loginLink.innerHTML = '<i class="bi bi-box-arrow-right me-2"></i>Logout';
+                loginLink.onclick = () => {
+                    const result = API.logoutUser();
+                    localStorage.removeItem('username');
+                    UI.updateAuthButton(false);
+                    alert(result.message);
+                    UI.showDashboard();
+                };
+            }
+            if (registerLink) registerLink.style.display = 'none';
+            if (dashboardLink) dashboardLink.style.display = '';
+            if (deviceLink) deviceLink.style.display = '';
         } else {
-            loginBtn.textContent = 'Login';
-            loginBtn.onclick = () => UI.showUserLogin();
-            if (registerBtn) registerBtn.style.display = '';
-            if (dashboardBtn) dashboardBtn.style.display = 'none';
-            if (deviceBtn) deviceBtn.style.display = 'none';
+            if (userDisplayName) userDisplayName.textContent = 'Guest';
+
+            if (loginLink) {
+                loginLink.innerHTML = '<i class="bi bi-box-arrow-in-right me-2"></i>Login';
+                loginLink.onclick = () => UI.showUserLogin();
+            }
+            if (registerLink) registerLink.style.display = '';
+            if (dashboardLink) dashboardLink.style.display = 'none';
+            if (deviceLink) deviceLink.style.display = 'none';
         }
     }
 };

@@ -1,45 +1,167 @@
-<section>
-    <div class="row g-3">
-        <div class="col-md-6">
-            <div class="card text-white bg-primary">
-                <div class="card-body d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="h2 mb-0" id="totalDevices">0</div>
-                        <div>Tổng thiết bị</div>
+<section class="animate-fade-in-up">
+    <!-- Hero Stats Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="metric-card electric-theme">
+                <div class="card-icon text-electric">
+                    <i class="bi bi-lightning-charge-fill"></i>
+                </div>
+                <div class="card-content">
+                    <h3 class="metric-value" id="totalDevices">0</h3>
+                    <p class="metric-label">Active Devices</p>
+                    <div class="metric-trend positive">
+                        <i class="bi bi-arrow-up"></i> +12% this week
                     </div>
-                    <i class="bi bi-cpu-fill fs-1"></i>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card text-white bg-success">
-                <div class="card-body d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="h2 mb-0" id="totalReadings">0</div>
-                        <div>Tổng lượt ghi</div>
+        <div class="col-lg-3 col-md-6">
+            <div class="metric-card green-theme">
+                <div class="card-icon text-electric-green">
+                    <i class="bi bi-graph-up-arrow"></i>
+                </div>
+                <div class="card-content">
+                    <h3 class="metric-value" id="totalReadings">0</h3>
+                    <p class="metric-label">Total Readings</p>
+                    <div class="metric-trend positive">
+                        <i class="bi bi-arrow-up"></i> +8% this week
                     </div>
-                    <i class="bi bi-graph-up-arrow fs-1"></i>
                 </div>
             </div>
         </div>
-    </div>
-    <div class="card mt-3">
-        <div class="card-body">
-            <h5 class="card-title mb-2">Tổng quan</h5>
-            <p class="mb-0 text-muted">Số liệu cập nhật theo thời gian thực từ hệ thống.</p>
+        <div class="col-lg-3 col-md-6">
+            <div class="metric-card orange-theme">
+                <div class="card-icon text-electric-orange">
+                    <i class="bi bi-battery-charging"></i>
+                </div>
+                <div class="card-content">
+                    <h3 class="metric-value" id="totalPower">0</h3>
+                    <p class="metric-label">Avg Power (W)</p>
+                    <div class="metric-trend">
+                        <i class="bi bi-dash"></i> Stable
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="metric-card purple-theme">
+                <div class="card-icon text-electric">
+                    <i class="bi bi-activity"></i>
+                </div>
+                <div class="card-content">
+                    <h3 class="metric-value" id="totalEnergy">0</h3>
+                    <p class="metric-label">Total Energy (kWh)</p>
+                    <div class="metric-trend positive">
+                        <i class="bi bi-arrow-up"></i> +15% this month
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="card mt-3">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Biểu đồ realtime (1 giờ gần nhất)</span>
-            <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="toggleRealtime" checked>
-                <label class="form-check-label" for="toggleRealtime">Realtime</label>
+    <!-- System Overview -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <h5 class="card-title mb-1">
+                        <i class="bi bi-info-circle text-electric me-2"></i>
+                        System Overview
+                    </h5>
+                    <p class="text-muted mb-0">Real-time monitoring of your electricity infrastructure</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <span class="status-indicator status-online">
+                        <div class="status-dot animate-pulse-electric"></div>
+                        System Online
+                    </span>
+                </div>
             </div>
         </div>
-        <div class="card-body">
+    </div>
+
+    <!-- Real-time Chart -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <h6 class="mb-0">
+                    <i class="bi bi-bar-chart-line text-electric me-2"></i>
+                    Real-time Power Consumption
+                </h6>
+                <small class="text-muted">Last 1 hour data</small>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="toggleRealtime" checked>
+                    <label class="form-check-label" for="toggleRealtime">Live Updates</label>
+                </div>
+                <button class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-download me-1"></i>Export
+                </button>
+            </div>
+        </div>
+        <div class="card-body position-relative">
+            <div id="chartLoading" class="loading-overlay d-none">
+                <div class="text-center">
+                    <div class="spinner-border text-electric mb-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted mb-0">Loading chart data...</p>
+                </div>
+            </div>
             <canvas id="realtimeChart" height="120"></canvas>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row g-3 mt-1">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="bi bi-gear text-electric me-2"></i>
+                        Quick Actions
+                    </h6>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" onclick="UI.showDeviceList()">
+                            <i class="bi bi-list me-2"></i>View All Devices
+                        </button>
+                        <button class="btn btn-outline-success">
+                            <i class="bi bi-plus-circle me-2"></i>Add New Device
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="bi bi-bell text-electric me-2"></i>
+                        Recent Alerts
+                    </h6>
+                    <div class="alert-list">
+                        <div class="alert-item d-flex align-items-center gap-2 mb-2">
+                            <div class="alert-icon">
+                                <i class="bi bi-exclamation-triangle text-warning"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <small class="text-muted">Device SN001 offline for 5 minutes</small>
+                            </div>
+                            <small class="text-muted">2m ago</small>
+                        </div>
+                        <div class="alert-item d-flex align-items-center gap-2">
+                            <div class="alert-icon">
+                                <i class="bi bi-info-circle text-info"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <small class="text-muted">High power consumption detected</small>
+                            </div>
+                            <small class="text-muted">15m ago</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>

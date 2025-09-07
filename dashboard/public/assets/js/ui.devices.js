@@ -9,7 +9,9 @@ const DevicesUI = {
         chart: null,
         ws: null,
         elements: null,
-        latestReadingTimer: null
+        latestReadingTimer: null,
+        charts: null,
+        statsChart: null
     },
 
     async showDeviceList() {
@@ -55,17 +57,37 @@ const DevicesUI = {
         }
         emptyEl.classList.add('d-none');
         container.innerHTML = items.map(device => `
-                <li class="list-group-item d-flex justify-content-between align-items-start">
-                    <div class="me-2">
-                        <div class="fw-bold">${device.name ?? 'No name'}</div>
-                        <div class="small text-muted">Serial: ${device.serial_number}</div>
-                        <div class="small text-muted">Last active: ${Utils.formatDate(device.last_seen)}</div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-body d-flex flex-column">
+                            <div class="flex-grow-1">
+                                <h6 class="card-title">
+                                    <i class="bi bi-cpu text-electric me-2"></i>
+                                    ${device.name ?? 'No name'}
+                                </h6>
+                                <div class="card-text">
+                                    <div class="small text-muted mb-1">
+                                        <i class="bi bi-tag me-1"></i>Serial: ${device.serial_number}
+                                    </div>
+                                    <div class="small text-muted mb-1">
+                                        <i class="bi bi-geo-alt me-1"></i>Location: ${device.location ?? 'N/A'}
+                                    </div>
+                                    <div class="small text-muted">
+                                        <i class="bi bi-clock me-1"></i>Last active: ${Utils.formatDate(device.last_seen)}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-3 d-flex gap-2">
+                                <button class="btn btn-outline-primary btn-sm flex-fill detail-device-btn" data-serial="${device.serial_number}">
+                                    <i class="bi bi-eye me-1"></i>View Details
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm delete-device-btn" data-id="${device._id ? device._id.toString() : device.id}">
+                                    <i class="bi bi-trash me-1"></i>Delete
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="btn-group">
-                        <button class="btn btn-sm btn-outline-primary detail-device-btn" data-serial="${device.serial_number}">Xem chi tiết</button>
-                        <button class="btn btn-sm btn-outline-danger delete-device-btn" data-id="${device.id}">Xóa</button>
-                    </div>
-                </li>
+                </div>
             `).join('');
         this.attachRowHandlers();
     },
@@ -151,16 +173,12 @@ const DevicesUI = {
         document.getElementById('content').innerHTML = html;
         this.detailState.serialNumber = serialNumber;
         this.detailState.elements = {
-            recordCountSelect: document.getElementById('recordCount'),
             modeSelect: document.getElementById('statsMode'),
             startDateInput: document.getElementById('statsStart'),
-            loadStatsBtn: document.getElementById('loadStatsBtn'),
-            chartEl: document.getElementById('deviceRealtimeChart'),
-            toggleDeviceRealtime: document.getElementById('toggleDeviceRealtime')
+            loadStatsBtn: document.getElementById('loadStatsBtn')
         };
         await this.populateDeviceDetail();
         this.bindDetailEvents();
-        await this.renderReadingTable(parseInt(this.detailState.elements.recordCountSelect.value, 10));
         this.setupRealtimeChart();
     },
 
@@ -178,18 +196,17 @@ const DevicesUI = {
 
     async updateLatestReading() {
         const reading = await API.fetchLatestReading(this.detailState.serialNumber);
-        document.getElementById('deviceVoltage').innerText = reading?.voltage ?? 'N/A';
-        document.getElementById('deviceCurrent').innerText = reading?.current ?? 'N/A';
-        document.getElementById('devicePower').innerText = reading?.power ?? 'N/A';
-        document.getElementById('deviceEnergy').innerText = reading?.energy ?? 'N/A';
+        document.getElementById('deviceVoltage').innerText = Utils.formatVoltage(reading?.voltage);
+        document.getElementById('deviceCurrent').innerText = Utils.formatCurrent(reading?.current);
+        document.getElementById('devicePower').innerText = Utils.formatPower(reading?.power);
+        document.getElementById('deviceEnergy').innerText = Utils.formatEnergy(reading?.energy);
     },
 
     bindDetailEvents() {
-        const { modeSelect, startDateInput, loadStatsBtn, recordCountSelect } = this.detailState.elements;
+        const { modeSelect, startDateInput, loadStatsBtn } = this.detailState.elements;
         if (loadStatsBtn) loadStatsBtn.onclick = () => this.renderStatsTable();
-        if (recordCountSelect) {
-            recordCountSelect.onchange = () => this.renderReadingTable(parseInt(recordCountSelect.value, 10));
-        }
+
+        // Note: Removed recordCountSelect binding since we removed the table
     },
 
     async renderStatsTable() {
@@ -201,12 +218,22 @@ const DevicesUI = {
         const tbody = document.querySelector('#statsTable tbody');
         tbody.innerHTML = (stats.raw || []).map(row => `
                 <tr>
-                    <td>${row.label}</td>
-                    <td>${row.volt_min ?? 'N/A'}</td>
-                    <td>${row.volt_max ?? 'N/A'}</td>
-                    <td>${row.amp_min ?? 'N/A'}</td>
-                    <td>${row.amp_max ?? 'N/A'}</td>
-                    <td>${row.kwh_used ?? 'N/A'}</td>
+                    <td class="fw-medium">${row.label}</td>
+                    <td>
+                        <div class="d-flex flex-column align-items-center gap-1">
+                            <small class="text-muted">${Utils.formatValue(row.volt_min, 1)}</small>
+                            <small class="text-electric fw-semibold">${Utils.formatValue(row.volt_max, 1)}</small>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="d-flex flex-column align-items-center gap-1">
+                            <small class="text-muted">${Utils.formatValue(row.amp_min, 1)}</small>
+                            <small class="text-success fw-semibold">${Utils.formatValue(row.amp_max, 1)}</small>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge bg-info text-white fw-semibold">${Utils.formatValue(row.kwh_used, 1)}</span>
+                    </td>
                 </tr>
         `).join('');
 
@@ -231,84 +258,165 @@ const DevicesUI = {
         } catch (_) { }
     },
 
-    async renderReadingTable(count) {
-        const readings = await API.fetchRecentReadings(this.detailState.serialNumber, count);
-        const tbody = document.querySelector('#readingTable tbody');
-        tbody.innerHTML = readings.map(r => `
-                <tr>
-                    <td>${Utils.formatDate(r.timestamp)}</td>
-                    <td>${r.voltage ?? 'N/A'}</td>
-                    <td>${r.current ?? 'N/A'}</td>
-                    <td>${r.power ?? 'N/A'}</td>
-                    <td>${r.energy ?? 'N/A'}</td>
-                </tr>
-            `).join('');
+    async setupRealtimeChart() {
+        if (!window.Chart) return;
+
+        const oneHourMs = 60 * 60 * 1000;
+
+        // Create three separate charts
+        this.detailState.charts = {
+            voltageChart: this.createRealtimeChart('voltageChart', 'Voltage (V)', '#00d4ff', 'voltage'),
+            currentChart: this.createRealtimeChart('currentChart', 'Current (A)', '#00ff88', 'current'),
+            powerChart: this.createRealtimeChart('powerChart', 'Power (W)', '#ff6b35', 'power')
+        };
+
+        // Seed data for all charts
+        await this.seedAllCharts();
+
+        // Setup WebSocket handlers
+        this.setupWebSocketHandlers();
     },
 
-    async setupRealtimeChart() {
-        const { chartEl, toggleDeviceRealtime } = this.detailState.elements;
-        if (!(chartEl && window.Chart)) return;
-        const oneHourMs = 60 * 60 * 1000;
-        const chart = new Chart(chartEl, {
+    createRealtimeChart(canvasId, label, color, dataKey) {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return null;
+
+        // Create gradient
+        const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, color + '30');
+        gradient.addColorStop(1, color + '05');
+
+        return new Chart(ctx, {
             type: 'line',
             data: {
                 datasets: [{
-                    label: 'Công suất (W)',
+                    label: label,
                     data: [],
-                    borderColor: '#198754',
-                    backgroundColor: 'rgba(25,135,84,.1)',
-                    tension: 0.25,
-                    pointRadius: 0
+                    borderColor: color,
+                    backgroundColor: gradient,
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    pointBackgroundColor: color,
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2
                 }]
             },
             options: {
-                animation: false,
+                animation: { duration: 1000, easing: 'easeInOutQuart' },
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: { intersect: false, mode: 'index' },
                 parsing: { xAxisKey: 'x', yAxisKey: 'y' },
-                scales: { x: { type: 'time', time: { unit: 'minute' } }, y: { beginAtZero: true } },
-                plugins: { legend: { display: false } }
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: { unit: 'minute', displayFormats: { minute: 'HH:mm' } },
+                        grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                        ticks: { color: '#666' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                        ticks: { color: '#666' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        borderColor: color,
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: false,
+                        callbacks: {
+                            title: (context) => new Date(context[0].parsed.x).toLocaleTimeString(),
+                            label: (context) => `${label}: ${context.parsed.y}`
+                        }
+                    }
+                }
             }
         });
-        this.detailState.chart = chart;
+    },
 
-        const addPoint = (ts, powerValue) => {
-            const cutoff = Date.now() - oneHourMs;
-            const points = chart.data.datasets[0].data;
-            const x = new Date(ts).getTime();
-            if (Number.isNaN(x)) return;
-            // Drop old points beyond 1h
-            while (points.length && new Date(points[0].x).getTime() < cutoff) {
-                points.shift();
-            }
-            // Enforce monotonic time: if incoming ts <= last, ignore to avoid back-links
-            if (points.length) {
-                const lastX = new Date(points[points.length - 1].x).getTime();
-                if (x <= lastX) return;
-            }
-            points.push({ x: new Date(x).toISOString(), y: powerValue });
-            chart.update('none');
-        };
-
+    async seedAllCharts() {
         try {
             const seed = await API.fetchRecentReadings(this.detailState.serialNumber, 30);
-            seed
-                .map(r => ({ x: new Date(r.timestamp).getTime(), y: Number(r.power) || 0 }))
-                .filter(p => !Number.isNaN(p.x))
-                .sort((a, b) => a.x - b.x)
-                .forEach(p => addPoint(new Date(p.x).toISOString(), p.y));
-        } catch (_) { }
+            const oneHourMs = 60 * 60 * 1000;
+            const cutoff = Date.now() - oneHourMs;
 
+            seed.forEach(r => {
+                const ts = new Date(r.timestamp).getTime();
+                if (ts > cutoff) {
+                    this.addDataPoint('voltage', ts, Number(r.voltage) || 0);
+                    this.addDataPoint('current', ts, Number(r.current) || 0);
+                    this.addDataPoint('power', ts, Number(r.power) || 0);
+                }
+            });
+        } catch (error) {
+            console.error('Error seeding chart data:', error);
+        }
+    },
+
+    setupWebSocketHandlers() {
         const handler = (data) => {
-            if (toggleDeviceRealtime && !toggleDeviceRealtime.checked) return;
             if (data.serial_number !== this.detailState.serialNumber) return;
+
             const ts = data.timestamp || new Date().toISOString();
-            const power = Number(data.power) || 0;
-            addPoint(ts, power);
+            const timestamp = new Date(ts).getTime();
+
+            // Check individual toggles and update corresponding charts
+            if (document.getElementById('toggleVoltageRealtime')?.checked) {
+                this.addDataPoint('voltage', timestamp, Number(data.voltage) || 0);
+            }
+            if (document.getElementById('toggleCurrentRealtime')?.checked) {
+                this.addDataPoint('current', timestamp, Number(data.current) || 0);
+            }
+            if (document.getElementById('togglePowerRealtime')?.checked) {
+                this.addDataPoint('power', timestamp, Number(data.power) || 0);
+            }
         };
+
         Sockets.subscribe(this.detailState.serialNumber, handler);
-        this.detailState.ws = { close: () => Sockets.unsubscribe(this.detailState.serialNumber, handler) };
+        this.detailState.ws = {
+            close: () => Sockets.unsubscribe(this.detailState.serialNumber, handler)
+        };
+    },
+
+    addDataPoint(chartType, timestamp, value) {
+        const chart = this.detailState.charts[chartType + 'Chart'];
+        if (!chart) return;
+
+        const oneHourMs = 60 * 60 * 1000;
+        const cutoff = Date.now() - oneHourMs;
+        const points = chart.data.datasets[0].data;
+
+        // Remove old points beyond 1 hour
+        while (points.length && new Date(points[0].x).getTime() < cutoff) {
+            points.shift();
+        }
+
+        // Avoid duplicate timestamps
+        if (points.length) {
+            const lastX = new Date(points[points.length - 1].x).getTime();
+            if (timestamp <= lastX) return;
+        }
+
+        // Add new point
+        points.push({
+            x: new Date(timestamp).toISOString(),
+            y: value
+        });
+
+        chart.update('none');
     }
 };
+
+// Make DevicesUI globally available
+window.DevicesUI = DevicesUI;
 
 

@@ -14,7 +14,7 @@ const mqttHandler = require('./mqtt/handler');
 const { setupWebSocket } = require('./ws/websocket');
 const apiRouter = require('./routes/api');
 
-const HTTP_PORT = process.env.HTTP_PORT || 3000;
+const HTTP_PORT = process.env.HTTP_PORT || 3001;
 const WS_PORT = process.env.WS_PORT || 8080;
 
 // Express setup

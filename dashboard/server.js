@@ -6,6 +6,8 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 const WebSocket = require('ws');
+const https = require('https');
+const fs = require('fs');
 
 const { connectToMongoDB, closeConnection } = require('./db/mongodb');
 const mqttHandler = require('./mqtt/handler');
@@ -28,7 +30,7 @@ app.use(helmet({
             fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
             scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
             scriptSrcAttr: ["'unsafe-inline'"],
-            connectSrc: ["'self'", "ws://localhost:8080", "ws://113.161.220.166:8080", "http://localhost:3001", "http://113.161.220.166:3001", "https://cdn.jsdelivr.net"],
+            connectSrc: ["'self'", "ws://localhost:8080", "ws://113.161.220.166:8080", "wss://113.161.220.166:8080", "http://localhost:3001", "http://113.161.220.166:3001", "https://113.161.220.166:3001", "https://cdn.jsdelivr.net"],
             imgSrc: ["'self'", "data:", "https://cdn.jsdelivr.net"]
         }
     }
@@ -50,7 +52,7 @@ app.use(limiter);
 
 // CORS configuration
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://113.161.220.166:3001',
+    origin: process.env.FRONTEND_URL || 'https://113.161.220.166:3001',
     credentials: true
 }));
 
@@ -79,9 +81,14 @@ app.use((req, res) => {
     res.status(404).json({ error: 'Route not found' });
 });
 
-// Start HTTP server
-app.listen(HTTP_PORT, () => {
-    console.log(`HTTP server running on port ${HTTP_PORT}`);
+// Start HTTPS server
+const httpsOptions = {
+    key: fs.readFileSync('key.pem'),
+    cert: fs.readFileSync('cert.pem')
+};
+const server = https.createServer(httpsOptions, app);
+server.listen(HTTP_PORT, () => {
+    console.log(`HTTPS server running on port ${HTTP_PORT}`);
 });
 
 // Initialize MongoDB and start services
@@ -90,7 +97,7 @@ async function startServices() {
         await connectToMongoDB();
 
         // WebSocket
-        setupWebSocket(WS_PORT);
+        setupWebSocket(server);
 
         // MQTT
         mqttHandler.initMQTT();

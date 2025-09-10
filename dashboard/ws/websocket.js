@@ -3,8 +3,8 @@ const WebSocket = require('ws');
 
 let wss;
 
-function setupWebSocket(port) {
-    wss = new WebSocket.Server({ port });
+function setupWebSocket(server) {
+    wss = new WebSocket.Server({ server });
 
     wss.on('connection', (ws) => {
         console.log('New WebSocket client connected');

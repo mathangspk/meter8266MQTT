@@ -209,7 +209,71 @@ Meter reading data should be in JSON format:
 
 ## 🚀 Deployment
 
-### Production Setup
+### PM2 Production Setup (Recommended)
+
+This project includes PM2 configuration for production deployment:
+
+#### Initial Setup
+```bash
+# Make deployment scripts executable
+chmod +x deploy.sh restart.sh
+
+# Run initial deployment
+npm run deploy
+# or
+./deploy.sh
+```
+
+#### After Code Updates
+```bash
+# Pull latest changes
+git pull origin main
+
+# Restart with new code
+npm run restart
+# or
+./restart.sh
+```
+
+#### PM2 Management Commands
+```bash
+# Start application
+npm run pm2:start
+
+# Stop application
+npm run pm2:stop
+
+# Restart application
+npm run pm2:restart
+
+# View logs
+npm run pm2:logs
+
+# Monitor application
+npm run pm2:monit
+
+# Check status
+npm run pm2:status
+
+# Delete process
+npm run pm2:delete
+```
+
+#### PM2 Configuration
+The `ecosystem.config.js` file contains:
+- **Process name:** `meter-dashboard`
+- **Auto-restart:** Enabled
+- **Memory limit:** 1GB restart threshold
+- **Environment:** Production settings
+- **Log files:** `./logs/` directory
+- **Instances:** 1 (single instance)
+
+#### Logs
+- **Error logs:** `./logs/err.log`
+- **Output logs:** `./logs/out.log`
+- **Combined logs:** `./logs/combined.log`
+
+### Manual Production Setup
 1. Set environment variables
 2. Use PM2 for process management
 3. Configure reverse proxy (nginx)

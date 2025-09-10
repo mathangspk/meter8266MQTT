@@ -6,6 +6,15 @@
     "scripts": {
         "start": "node server.js",
         "dev": "nodemon server.js",
+        "pm2:start": "pm2 start ecosystem.config.js --env production",
+        "pm2:stop": "pm2 stop meter-dashboard",
+        "pm2:restart": "pm2 restart meter-dashboard",
+        "pm2:delete": "pm2 delete meter-dashboard",
+        "pm2:logs": "pm2 logs meter-dashboard",
+        "pm2:monit": "pm2 monit",
+        "pm2:status": "pm2 status",
+        "deploy": "./deploy.sh",
+        "restart": "./restart.sh",
         "init-db": "node init-database.js",
         "migrate": "node migrate-to-mongodb.js",
         "migrate-safe": "node migrate-to-mongodb-safe.js"

@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = 'http://113.161.220.166:3001/api';
 
 // Helper function to get auth token
 const getAuthToken = () => localStorage.getItem('token');

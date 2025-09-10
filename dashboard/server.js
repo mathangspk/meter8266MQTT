@@ -20,6 +20,7 @@ const app = express();
 
 // Security middleware
 app.use(helmet({
+    crossOriginOpenerPolicy: false, // Disable COOP to avoid untrustworthy origin issues
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
@@ -27,7 +28,7 @@ app.use(helmet({
             fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
             scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
             scriptSrcAttr: ["'unsafe-inline'"],
-            connectSrc: ["'self'", "ws://localhost:8080", "http://localhost:3001", "https://cdn.jsdelivr.net"],
+            connectSrc: ["'self'", "ws://localhost:8080", "ws://113.161.220.166:8080", "http://localhost:3001", "http://113.161.220.166:3001", "https://cdn.jsdelivr.net"],
             imgSrc: ["'self'", "data:", "https://cdn.jsdelivr.net"]
         }
     }
@@ -49,7 +50,7 @@ app.use(limiter);
 
 // CORS configuration
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: process.env.FRONTEND_URL || 'http://113.161.220.166:3001',
     credentials: true
 }));
 

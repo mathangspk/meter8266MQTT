@@ -14,7 +14,7 @@ function setupWebSocket(server) {
         });
     });
 
-    console.log(`WebSocket server running on port ${port}`);
+    console.log('WebSocket server attached to HTTPS server');
 }
 
 function broadcastToClients(data) {

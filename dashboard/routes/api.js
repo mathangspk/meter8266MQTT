@@ -1,27 +1,53 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
 const devicesRouter = require('./devices_check');
 const readingsRouter = require('./readings');
 const { getUsersCollection } = require('../db/mongodb');
+const { authenticateToken, validateLogin, validateRegister, JWT_SECRET } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Rate limiting cho auth endpoints
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 50, // limit each IP to 50 requests per windowMs (tăng cho development)
+    message: {
+        error: 'Too many authentication attempts, please try again later.',
+        retryAfter: '15 minutes'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
 // Đăng ký tài khoản người dùng
-router.post('/register', async (req, res) => {
-    console.log('Received registration request:', req.body);
+router.post('/register', authLimiter, validateRegister, async (req, res) => {
+    console.log('Received registration request for user:', req.body.username);
     const { username, email, password } = req.body;
-    console.log('Registering user:', username);
-    if (!username || !email || !password) {
-        return res.status(400).json({ error: 'Missing username, email or password' });
-    }
 
     try {
         const usersCollection = await getUsersCollection();
+
+        // Check if user already exists
+        const existingUser = await usersCollection.findOne({
+            $or: [{ username }, { email }]
+        });
+
+        if (existingUser) {
+            return res.status(409).json({ error: 'Username or email already exists' });
+        }
+
+        // Hash password
+        const saltRounds = 12;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+
         const createdAt = new Date();
 
         const result = await usersCollection.insertOne({
             username,
             email,
-            password,
+            password: hashedPassword,
             created_at: createdAt
         });
 
@@ -30,43 +56,101 @@ router.post('/register', async (req, res) => {
             user_id: result.insertedId
         });
     } catch (error) {
-        if (error.code === 11000) {
-            return res.status(409).json({ error: 'Username or email already exists' });
-        }
-        return res.status(500).json({ error: error.message });
+        console.error('Registration error:', error);
+        return res.status(500).json({ error: 'Internal server error' });
     }
 });
 
 // Đăng nhập người dùng
-router.post('/login', async (req, res) => {
-    console.log('Received login request:', req.body);
+router.post('/login', authLimiter, validateLogin, async (req, res) => {
+    console.log('Received login request for user:', req.body.username);
     const { username, password } = req.body;
-    console.log('Logging in user:', username);
-    if (!username || !password) {
-        return res.status(400).json({ error: 'Missing username or password' });
-    }
 
     try {
         const usersCollection = await getUsersCollection();
-        const user = await usersCollection.findOne({ username, password });
+        const user = await usersCollection.findOne({ username });
 
         if (!user) {
             return res.status(401).json({ error: 'Invalid username or password' });
         }
 
+        // Verify password
+        const isValidPassword = await bcrypt.compare(password, user.password);
+        if (!isValidPassword) {
+            return res.status(401).json({ error: 'Invalid username or password' });
+        }
+
+        // Generate JWT token
+        const token = jwt.sign(
+            {
+                userId: user._id.toString(), // Convert ObjectId to string
+                username: user.username,
+                email: user.email
+            },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
         res.json({
             message: 'Login successful',
-            user_id: user._id,
-            username: user.username
+            token,
+            user: {
+                user_id: user._id,
+                username: user.username,
+                email: user.email
+            }
         });
     } catch (error) {
-        return res.status(500).json({ error: error.message });
+        console.error('Login error:', error);
+        return res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-// Route thống kê
+// Protected route - Get current user info
+router.get('/me', authenticateToken, async (req, res) => {
+    try {
+        console.log('GET /api/me called');
+        console.log('User from token:', req.user);
+        console.log('UserId type:', typeof req.user.userId);
+        console.log('UserId value:', req.user.userId);
+
+        const usersCollection = await getUsersCollection();
+        console.log('Users collection obtained');
+
+        // Convert string userId back to ObjectId for MongoDB query
+        const { ObjectId } = require('mongodb');
+        let query;
+        try {
+            query = { _id: new ObjectId(req.user.userId) };
+            console.log('Using ObjectId query:', query);
+        } catch (error) {
+            console.log('Invalid ObjectId, trying string query');
+            query = { _id: req.user.userId };
+        }
+
+        const user = await usersCollection.findOne(
+            query,
+            { projection: { password: 0 } } // Exclude password
+        );
+
+        console.log('User found:', user ? 'YES' : 'NO');
+        console.log('User data:', user);
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.json({ user });
+    } catch (error) {
+        console.error('Get user error:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Route thống kê (tạm thời public để test)
 router.get('/stats', async (req, res) => {
     try {
+        console.log('GET /api/stats called');
         const { getMeterReadingsCollection, getDevicesCollection } = require('../db/mongodb');
 
         const readingsCollection = await getMeterReadingsCollection();
@@ -75,16 +159,19 @@ router.get('/stats', async (req, res) => {
         const totalReadings = await readingsCollection.countDocuments();
         const totalDevices = await devicesCollection.countDocuments();
 
+        console.log('Stats result:', { totalReadings, totalDevices });
+
         res.json({
             total_readings: totalReadings,
             total_devices: totalDevices
         });
     } catch (error) {
-        return res.status(500).json({ error: error.message });
+        console.error('Stats error:', error);
+        return res.status(500).json({ error: 'Internal server error', details: error.message });
     }
 });
 
-// Mount sub-routes
+// Mount sub-routes (đã được bảo vệ trong từng file)
 router.use('/devices', devicesRouter);
 router.use('/readings', readingsRouter);
 

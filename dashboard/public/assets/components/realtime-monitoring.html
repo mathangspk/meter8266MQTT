@@ -1,0 +1,220 @@
+<section class="animate-fade-in-up">
+    <!-- Header with Device Selector -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
+                <div class="flex-grow-1">
+                    <h3 class="card-title mb-1">
+                        <i class="bi bi-activity text-electric me-2"></i>
+                        Real-time Monitoring
+                    </h3>
+                    <p class="text-muted mb-0">Live data visualization for electricity consumption</p>
+                </div>
+                <div class="d-flex gap-2 w-100 w-lg-auto">
+                    <select id="deviceSelector" class="form-select" style="min-width: 250px;">
+                        <option value="">Select a device...</option>
+                    </select>
+                    <button class="btn btn-outline-primary" id="refreshDevicesBtn">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device Info Display -->
+    <div id="selectedDeviceInfo" class="card mb-4 d-none">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="device-info-item">
+                        <label class="form-label text-muted small mb-1">Device</label>
+                        <div class="fw-semibold" id="rtDeviceName">-</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="device-info-item">
+                        <label class="form-label text-muted small mb-1">Serial Number</label>
+                        <div class="fw-semibold" id="rtDeviceSerial">-</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="device-info-item">
+                        <label class="form-label text-muted small mb-1">Location</label>
+                        <div class="fw-semibold" id="rtDeviceLocation">-</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="device-info-item">
+                        <label class="form-label text-muted small mb-1">Status</label>
+                        <span id="rtDeviceStatus" class="status-indicator status-online">
+                            <div class="status-dot"></div>
+                            Online
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Metrics -->
+    <div id="currentMetrics" class="row g-3 mb-4 d-none">
+        <div class="col-md-3">
+            <div class="metric-card electric-theme">
+                <div class="card-icon text-electric">
+                    <i class="bi bi-lightning"></i>
+                </div>
+                <div class="card-content">
+                    <h4 class="metric-value" id="rtDeviceVoltage">-</h4>
+                    <p class="metric-label">Voltage (V)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card green-theme">
+                <div class="card-icon text-electric-green">
+                    <i class="bi bi-activity"></i>
+                </div>
+                <div class="card-content">
+                    <h4 class="metric-value" id="rtDeviceCurrent">-</h4>
+                    <p class="metric-label">Current (A)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card orange-theme">
+                <div class="card-icon text-electric-orange">
+                    <i class="bi bi-battery-charging"></i>
+                </div>
+                <div class="card-content">
+                    <h4 class="metric-value" id="rtDevicePower">-</h4>
+                    <p class="metric-label">Power (W)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card purple-theme">
+                <div class="card-icon text-electric">
+                    <i class="bi bi-battery-full"></i>
+                </div>
+                <div class="card-content">
+                    <h4 class="metric-value" id="rtDeviceEnergy">-</h4>
+                    <p class="metric-label">Energy (kWh)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Real-time Charts -->
+    <div id="realtimeCharts" class="d-none">
+        <!-- Chart Controls -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h5 class="mb-1">
+                    <i class="bi bi-activity text-electric me-2"></i>
+                    Live Real-time Charts
+                </h5>
+                <small class="text-muted">Charts update automatically when device sends data</small>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-danger btn-sm" id="clearChartsBtn" title="Clear Chart Data">
+                    <i class="bi bi-trash me-1"></i>
+                    <span class="d-none d-sm-inline">Clear All</span>
+                    <span class="d-sm-none">🗑️</span>
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" id="toggleAllBtn" title="Toggle All Charts">
+                    <i class="bi bi-toggle-on me-1"></i>
+                    <span class="d-none d-sm-inline">Toggle All</span>
+                    <span class="d-sm-none">🔄</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+            <!-- Voltage Chart -->
+            <div class="card voltage-chart mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="bi bi-lightning text-electric me-2"></i>
+                        Real-time Voltage
+                    </h6>
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="toggleVoltageRealtime" checked>
+                        <label class="form-check-label" for="toggleVoltageRealtime">
+                            <span class="d-none d-sm-inline">Live</span>
+                            <span class="d-sm-none">Live</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="voltageChart" height="150"></canvas>
+                </div>
+            </div>
+
+            <!-- Current Chart -->
+            <div class="card current-chart mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="bi bi-activity text-success me-2"></i>
+                        Real-time Current
+                    </h6>
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="toggleCurrentRealtime" checked>
+                        <label class="form-check-label" for="toggleCurrentRealtime">
+                            <span class="d-none d-sm-inline">Live</span>
+                            <span class="d-sm-none">Live</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="currentChart" height="150"></canvas>
+                </div>
+            </div>
+
+            <!-- Power Chart -->
+            <div class="card power-chart mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="bi bi-bolt text-warning me-2"></i>
+                        Real-time Power
+                    </h6>
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="togglePowerRealtime" checked>
+                        <label class="form-check-label" for="togglePowerRealtime">
+                            <span class="d-none d-sm-inline">Live</span>
+                            <span class="d-sm-none">Live</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="powerChart" height="150"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- No Device Selected State -->
+    <div id="noDeviceSelected" class="text-center my-5">
+        <div class="empty-state">
+            <div class="empty-icon mb-3">
+                <i class="bi bi-activity display-1 text-muted"></i>
+            </div>
+            <h5 class="text-muted mb-2">Select a Device to Monitor</h5>
+            <p class="text-muted mb-4">Choose a device from the dropdown above to start real-time monitoring</p>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="realtimeLoading" class="text-center my-5 d-none">
+        <div class="d-flex flex-column align-items-center gap-3">
+            <div class="spinner-border text-electric" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">Loading real-time data...</span>
+            </div>
+            <div>
+                <h5 class="text-muted mb-1">Setting up Real-time Monitoring</h5>
+                <p class="text-muted mb-0">Connecting to device and initializing charts...</p>
+            </div>
+        </div>
+    </div>
+</section>

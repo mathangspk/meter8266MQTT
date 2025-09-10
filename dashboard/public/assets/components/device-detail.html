@@ -11,6 +11,11 @@
                     <p class="text-muted mb-0 d-none d-sm-block">Monitor real-time electricity consumption</p>
                 </div>
                 <div class="d-flex gap-2 w-100 w-sm-auto">
+                    <button class="btn btn-primary flex-fill flex-sm-auto btn-sm" id="viewRealtimeBtn">
+                        <i class="bi bi-activity me-1"></i>
+                        <span class="d-none d-sm-inline">Real-time</span>
+                        <span class="d-sm-none">Live</span>
+                    </button>
                     <button class="btn btn-outline-primary flex-fill flex-sm-auto btn-sm">
                         <i class="bi bi-pencil me-1"></i>
                         <span class="d-none d-sm-inline">Edit</span>
@@ -101,7 +106,7 @@
                 <div class="col-md-3">
                     <div class="metric-card orange-theme">
                         <div class="card-icon text-electric-orange">
-                            <i class="bi bi-bolt"></i>
+                            <i class="bi bi-battery-charging me-2"></i>
                         </div>
                         <div class="card-content">
                             <h4 class="metric-value" id="devicePower">-</h4>
@@ -121,65 +126,19 @@
                     </div>
                 </div>
             </div>
-            <!-- Multiple Real-time Charts -->
-            <div class="charts-grid">
-                <!-- Voltage Chart -->
-                <div class="card voltage-chart">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">
-                            <i class="bi bi-lightning text-electric me-2"></i>
-                            Real-time Voltage
-                        </h6>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" type="checkbox" id="toggleVoltageRealtime" checked>
-                            <label class="form-check-label" for="toggleVoltageRealtime">
-                                <span class="d-none d-sm-inline">Live</span>
-                                <span class="d-sm-none">Live</span>
-                            </label>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="voltageChart" height="100"></canvas>
-                    </div>
-                </div>
 
-                <!-- Current Chart -->
-                <div class="card current-chart">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">
-                            <i class="bi bi-activity text-success me-2"></i>
-                            Real-time Current
-                        </h6>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" type="checkbox" id="toggleCurrentRealtime" checked>
-                            <label class="form-check-label" for="toggleCurrentRealtime">
-                                <span class="d-none d-sm-inline">Live</span>
-                                <span class="d-sm-none">Live</span>
-                            </label>
+            <!-- Real-time Monitoring Call-to-Action -->
+            <div class="text-center my-4">
+                <div class="card bg-light border-0">
+                    <div class="card-body py-4">
+                        <div class="mb-3">
+                            <i class="bi bi-activity display-4 text-electric"></i>
                         </div>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="currentChart" height="100"></canvas>
-                    </div>
-                </div>
-
-                <!-- Power Chart -->
-                <div class="card power-chart">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">
-                            <i class="bi bi-bolt text-warning me-2"></i>
-                            Real-time Power
-                        </h6>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" type="checkbox" id="togglePowerRealtime" checked>
-                            <label class="form-check-label" for="togglePowerRealtime">
-                                <span class="d-none d-sm-inline">Live</span>
-                                <span class="d-sm-none">Live</span>
-                            </label>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="powerChart" height="100"></canvas>
+                        <h6 class="card-title text-electric mb-2">Real-time Monitoring Available</h6>
+                        <p class="text-muted mb-3">View live voltage, current, and power charts for this device</p>
+                        <button class="btn btn-primary" id="viewRealtimeBtnAlt">
+                            <i class="bi bi-activity me-2"></i>View Real-time Data
+                        </button>
                     </div>
                 </div>
             </div>

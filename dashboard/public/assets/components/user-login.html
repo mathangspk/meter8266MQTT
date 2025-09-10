@@ -1,14 +1,227 @@
-<section>
-    <h2>User Login</h2>
-    <form id="loginForm">
-        <label>
-            Username:<br>
-            <input type="text" name="username" required />
-        </label><br><br>
-        <label>
-            Password:<br>
-            <input type="password" name="password" required />
-        </label><br><br>
-        <button type="submit">Login</button>
-    </form>
-</section>
+<div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center py-5">
+    <div class="row justify-content-center w-100">
+        <div class="col-12 col-md-6 col-lg-4">
+            <!-- Login Card -->
+            <div class="card border-0 shadow-electric animate-fade-in-up" style="background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--glass-border);">
+                <div class="card-body p-4 p-md-5">
+                    <!-- Header -->
+                    <div class="text-center mb-4">
+                        <div class="brand-icon mx-auto mb-3">
+                            <i class="bi bi-lightning-charge-fill text-electric animate-pulse-electric"></i>
+                        </div>
+                        <h2 class="h4 fw-bold text-primary mb-2">Welcome Back</h2>
+                        <p class="text-muted small">Sign in to your Smart Meter Dashboard</p>
+                    </div>
+
+                    <!-- Login Form -->
+                    <form id="loginForm" novalidate>
+                        <!-- Username Field -->
+                        <div class="mb-3">
+                            <label for="username" class="form-label fw-semibold text-primary">
+                                <i class="bi bi-person me-2"></i>Username
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="bi bi-person-fill text-muted"></i>
+                                </span>
+                                <input
+                                    type="text"
+                                    class="form-control border-start-0 ps-0"
+                                    id="username"
+                                    name="username"
+                                    placeholder="Enter your username"
+                                    required
+                                    autocomplete="username"
+                                />
+                            </div>
+                            <div class="invalid-feedback">
+                                Please enter your username.
+                            </div>
+                        </div>
+
+                        <!-- Password Field -->
+                        <div class="mb-4">
+                            <label for="password" class="form-label fw-semibold text-primary">
+                                <i class="bi bi-lock me-2"></i>Password
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="bi bi-lock-fill text-muted"></i>
+                                </span>
+                                <input
+                                    type="password"
+                                    class="form-control border-start-0 ps-0"
+                                    id="password"
+                                    name="password"
+                                    placeholder="Enter your password"
+                                    required
+                                    autocomplete="current-password"
+                                />
+                                <button class="btn btn-outline-secondary border-start-0" type="button" id="togglePassword">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            <div class="invalid-feedback">
+                                Please enter your password.
+                            </div>
+                        </div>
+
+                        <!-- Remember Me & Forgot Password -->
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="rememberMe">
+                                <label class="form-check-label text-muted small" for="rememberMe">
+                                    Remember me
+                                </label>
+                            </div>
+                            <a href="#" class="text-decoration-none small text-electric fw-semibold">
+                                Forgot password?
+                            </a>
+                        </div>
+
+                        <!-- Login Button -->
+                        <button type="submit" class="btn btn-primary w-100 mb-3 py-2 fw-semibold">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>
+                            <span id="loginBtnText">Sign In</span>
+                        </button>
+
+                        <!-- Error Message -->
+                        <div id="loginError" class="alert alert-danger py-2 mb-3 d-none" role="alert">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <span id="loginErrorText"></span>
+                        </div>
+
+                        <!-- Divider -->
+                        <div class="text-center mb-3">
+                            <span class="text-muted small">Don't have an account?</span>
+                        </div>
+
+                        <!-- Register Link -->
+                        <button type="button" class="btn btn-outline-primary w-100 py-2 fw-semibold" onclick="AuthUI.showUserRegister()">
+                            <i class="bi bi-person-plus me-2"></i>
+                            Create Account
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="text-center mt-4">
+                <p class="text-muted small mb-0">
+                    <i class="bi bi-shield-check me-1"></i>
+                    Secure login powered by Smart Meter
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Custom styles for login page */
+#togglePassword {
+    border-left: none;
+}
+
+#togglePassword:hover {
+    background-color: var(--electric-blue);
+    color: white;
+    border-color: var(--electric-blue);
+}
+
+.input-group-text {
+    border-radius: var(--radius-md) 0 0 var(--radius-md);
+}
+
+.form-control {
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+
+.btn-primary {
+    background: var(--electric-gradient);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-outline-primary {
+    border-color: var(--electric-blue);
+    color: var(--electric-blue);
+}
+
+.btn-outline-primary:hover {
+    background: var(--electric-gradient);
+    border-color: var(--electric-blue);
+    color: white;
+}
+
+.alert-danger {
+    border-radius: var(--radius-md);
+    border: none;
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.8s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+    .card-body {
+        padding: 2rem 1.5rem !important;
+    }
+
+    .brand-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 1.25rem;
+    }
+
+    h2 {
+        font-size: 1.25rem !important;
+    }
+}
+</style>
+
+<script>
+// Password toggle functionality
+document.getElementById('togglePassword').addEventListener('click', function() {
+    const passwordInput = document.getElementById('password');
+    const icon = this.querySelector('i');
+
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+    }
+});
+
+// Form validation
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+    const form = this;
+    if (!form.checkValidity()) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    form.classList.add('was-validated');
+});
+</script>

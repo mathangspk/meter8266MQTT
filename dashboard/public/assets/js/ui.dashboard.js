@@ -1,5 +1,8 @@
 const DashboardUI = {
     async showDashboard() {
+        // Cleanup previous chart if exists
+        this.cleanupChart();
+
         if (window.latestReadingInterval) clearInterval(window.latestReadingInterval);
 
         // Show loading state
@@ -51,6 +54,12 @@ const DashboardUI = {
     initializeRealtimeChart() {
         const ctx = document.getElementById('realtimeChart');
         if (!ctx || !window.Chart) return;
+
+        // Destroy existing chart if it exists
+        if (this.chart) {
+            this.chart.destroy();
+            this.chart = null;
+        }
 
         const oneHourMs = 60 * 60 * 1000;
 
@@ -176,6 +185,11 @@ const DashboardUI = {
         Sockets.subscribeAll(handler);
         window.addEventListener('beforeunload', () => {
             try { Sockets.unsubscribeAll(handler); } catch (_) { }
+            // Cleanup chart on page unload
+            if (this.chart) {
+                this.chart.destroy();
+                this.chart = null;
+            }
         });
 
         // Store chart instance for cleanup
@@ -203,6 +217,13 @@ const DashboardUI = {
         const themeToggle = document.getElementById('themeToggle');
         if (themeToggle) {
             themeToggle.checked = theme === 'dark';
+        }
+    },
+
+    cleanupChart() {
+        if (this.chart) {
+            this.chart.destroy();
+            this.chart = null;
         }
     }
 };

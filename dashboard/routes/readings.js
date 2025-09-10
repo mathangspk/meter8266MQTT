@@ -1,17 +1,42 @@
 // routes/readings.js
 const express = require('express');
-const { getMeterReadingsCollection } = require('../db/mongodb');
+const { getMeterReadingsCollection, getDevicesCollection } = require('../db/mongodb');
+const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Lấy tất cả readings
-router.get('/', async (req, res) => {
+// Lấy tất cả readings của user hiện tại
+router.get('/', authenticateToken, async (req, res) => {
     try {
         const { limit = 100, device_id } = req.query;
         const readingsCollection = await getMeterReadingsCollection();
+        const devicesCollection = await getDevicesCollection();
 
         let filter = {};
-        if (device_id) filter.device_id = device_id;
+
+        if (device_id) {
+            // Kiểm tra quyền sở hữu device cụ thể
+            const device = await devicesCollection.findOne({
+                device_id: device_id,
+                username: req.user.username
+            });
+            if (!device) {
+                return res.status(404).json({ error: 'Device not found or access denied' });
+            }
+            filter.device_id = device_id;
+        } else {
+            // Lấy tất cả device_ids của user hiện tại
+            const userDevices = await devicesCollection.find(
+                { username: req.user.username },
+                { projection: { device_id: 1 } }
+            ).toArray();
+
+            const userDeviceIds = userDevices.map(d => d.device_id);
+            if (userDeviceIds.length === 0) {
+                return res.json([]);
+            }
+            filter.device_id = { $in: userDeviceIds };
+        }
 
         const readings = await readingsCollection
             .find(filter)
@@ -25,10 +50,21 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Lấy reading mới nhất
-router.get('/:serial_number/latest-reading', async (req, res) => {
+// Lấy reading mới nhất (chỉ user sở hữu device mới xem được)
+router.get('/:serial_number/latest-reading', authenticateToken, async (req, res) => {
     const { serial_number } = req.params;
     try {
+        // Kiểm tra quyền sở hữu device
+        const devicesCollection = await getDevicesCollection();
+        const device = await devicesCollection.findOne({
+            serial_number: serial_number,
+            username: req.user.username
+        });
+
+        if (!device) {
+            return res.status(404).json({ error: 'Device not found or access denied' });
+        }
+
         const readingsCollection = await getMeterReadingsCollection();
         const reading = await readingsCollection.findOne(
             { serial_number },
@@ -40,12 +76,23 @@ router.get('/:serial_number/latest-reading', async (req, res) => {
     }
 });
 
-// Lấy nhiều readings theo serial
-router.get('/:serial_number/readings', async (req, res) => {
+// Lấy nhiều readings theo serial (chỉ user sở hữu device mới xem được)
+router.get('/:serial_number/readings', authenticateToken, async (req, res) => {
     const { serial_number } = req.params;
     const limit = parseInt(req.query.limit, 10) || 10;
 
     try {
+        // Kiểm tra quyền sở hữu device
+        const devicesCollection = await getDevicesCollection();
+        const device = await devicesCollection.findOne({
+            serial_number: serial_number,
+            username: req.user.username
+        });
+
+        if (!device) {
+            return res.status(404).json({ error: 'Device not found or access denied' });
+        }
+
         const readingsCollection = await getMeterReadingsCollection();
         const readings = await readingsCollection
             .find(
@@ -63,15 +110,26 @@ router.get('/:serial_number/readings', async (req, res) => {
 });
 
 // ==========================
-// 📊 API thống kê (day, week, month, year)
+// 📊 API thống kê (day, week, month, year) - chỉ user sở hữu device mới xem được
 // ==========================
-router.get('/:serial_number/stats', async (req, res) => {
+router.get('/:serial_number/stats', authenticateToken, async (req, res) => {
     const { serial_number } = req.params;
     const { mode = 'day', start } = req.query;
 
     if (!start) return res.status(400).json({ error: 'Missing start date' });
 
     try {
+        // Kiểm tra quyền sở hữu device
+        const devicesCollection = await getDevicesCollection();
+        const device = await devicesCollection.findOne({
+            serial_number: serial_number,
+            username: req.user.username
+        });
+
+        if (!device) {
+            return res.status(404).json({ error: 'Device not found or access denied' });
+        }
+
         const readingsCollection = await getMeterReadingsCollection();
         const startDate = new Date(start + "T00:00:00+07:00"); // chuẩn hóa UTC+7
         let endDate, groupBy, labelFormat;

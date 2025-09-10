@@ -1,39 +1,44 @@
-<nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+<nav class="navbar navbar-expand-lg navbar-light" style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0, 0, 0, 0.08); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
     <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center" href="#" onclick="UI.showDashboard()">
             <div class="brand-icon me-2">
                 <i class="bi bi-lightning-charge-fill text-electric animate-pulse-electric"></i>
             </div>
-            <div>
-                <div class="brand-title fw-bold">Smart Meter</div>
-                <small class="brand-subtitle text-muted">Dashboard</small>
-            </div>
+                <div>
+                    <div class="brand-title fw-bold text-dark">Smart Meter</div>
+                    <small class="brand-subtitle text-muted">Dashboard</small>
+                </div>
         </a>
 
         <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
             aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
+            <span class="navbar-toggler-icon text-dark"></span>
         </button>
 
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
                 <li class="nav-item">
-                    <a class="nav-link active" href="#" onclick="UI.showDashboard()">
+                    <a class="nav-link active text-dark" href="#" onclick="UI.showDashboard()">
                         <i class="bi bi-house-door me-1"></i>Dashboard
                     </a>
                 </li>
+                 <li class="nav-item">
+                     <a class="nav-link text-dark" href="#" onclick="UI.showDeviceList()">
+                         <i class="bi bi-cpu me-1"></i>Devices
+                     </a>
+                 </li>
+                 <li class="nav-item">
+                     <a class="nav-link text-dark" href="#" onclick="UI.showRealtimeMonitoring()">
+                         <i class="bi bi-activity me-1"></i>Real-time
+                     </a>
+                 </li>
+                 <li class="nav-item">
+                     <a class="nav-link text-dark" href="#">
+                         <i class="bi bi-graph-up me-1"></i>Analytics
+                     </a>
+                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#" onclick="UI.showDeviceList()">
-                        <i class="bi bi-cpu me-1"></i>Devices
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-graph-up me-1"></i>Analytics
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
+                    <a class="nav-link text-dark" href="#">
                         <i class="bi bi-gear me-1"></i>Settings
                     </a>
                 </li>
@@ -43,14 +48,14 @@
                 <!-- Theme Toggle -->
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="themeToggle">
-                    <label class="form-check-label text-light" for="themeToggle">
+                    <label class="form-check-label text-dark" for="themeToggle">
                         <i class="bi bi-moon-stars me-1"></i>Dark
                     </label>
                 </div>
 
                 <!-- User Actions -->
                 <div class="dropdown">
-                    <button class="btn btn-outline-light dropdown-toggle d-flex align-items-center" type="button" id="userDropdown" data-bs-toggle="dropdown">
+                    <button class="btn btn-outline-dark dropdown-toggle d-flex align-items-center" type="button" id="userDropdown" data-bs-toggle="dropdown">
                         <div class="user-avatar me-2">
                             <i class="bi bi-person-circle"></i>
                         </div>
@@ -64,6 +69,9 @@
                             <i class="bi bi-person-plus me-2"></i>Register
                         </a></li>
                         <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" onclick="UI.checkLoginStatus()">
+                            <i class="bi bi-info-circle me-2"></i>Check Login Status
+                        </a></li>
                         <li><a class="dropdown-item" href="#">
                             <i class="bi bi-person-gear me-2"></i>Profile Settings
                         </a></li>

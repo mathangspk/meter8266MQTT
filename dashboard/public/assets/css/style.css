@@ -583,7 +583,7 @@ body {
     }
 
     /* Mobile icon improvements */
-    .bi {
+    .bi:not(.card-icon i) {
         font-size: 1rem;
     }
 }

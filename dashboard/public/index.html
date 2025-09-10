@@ -20,7 +20,8 @@
     <link rel="stylesheet" href="assets/css/style.css" />
 
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+    <link rel="icon" type="image/x-icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 
     <style>
         /* Additional modern overrides */
@@ -82,8 +83,13 @@
 
         /* Loading animations */
         @keyframes shimmer {
-            0% { background-position: -200px 0; }
-            100% { background-position: calc(200px + 100%) 0; }
+            0% {
+                background-position: -200px 0;
+            }
+
+            100% {
+                background-position: calc(200px + 100%) 0;
+            }
         }
 
         .shimmer {
@@ -125,28 +131,310 @@
     <script src="assets/js/utils.js"></script>
     <script src="assets/js/api.js"></script>
     <script src="assets/js/sockets.js"></script>
-    <script src="assets/js/ui.dashboard.js"></script>
-    <script src="assets/js/ui.devices.js"></script>
-    <script src="assets/js/ui.auth.js"></script>
-    <script src="assets/js/ui.js"></script>
+    <script src="assets/js/ui.js" defer></script>
     <script>
+        // Immediate check when UI script loads
+        (function () {
+            const checkUIReady = () => {
+                if (window.UI && typeof window.UI.quickAuthCheck === 'function') {
+                    const token = localStorage.getItem('token');
+                    const username = localStorage.getItem('username');
+                    if (token && username) {
+                        console.log('🚀 Immediate auth check when UI loads...');
+                        window.UI.quickAuthCheck();
+                    }
+                } else {
+                    setTimeout(checkUIReady, 10);
+                }
+            };
+            checkUIReady();
+        })();
+    </script>
+    <script src="assets/js/ui.dashboard.js" defer></script>
+    <script src="assets/js/ui.devices.js" defer></script>
+    <script src="assets/js/ui.realtime.js" defer></script>
+    <script src="assets/js/ui.auth.js" defer></script>
+    <script>
+        // Function to check if all required modules are loaded
+        const waitForModules = () => {
+            return new Promise((resolve) => {
+                let attempts = 0;
+                const maxAttempts = 100; // Max 5 seconds
+
+                const checkModules = () => {
+                    attempts++;
+                    console.log(`Checking modules (attempt ${attempts})...`);
+                    console.log('UI available:', !!window.UI);
+                    console.log('AuthUI available:', !!window.AuthUI);
+                    console.log('DashboardUI available:', !!window.DashboardUI);
+                    console.log('DevicesUI available:', !!window.DevicesUI);
+
+                    if (window.UI && typeof window.UI.init === 'function') {
+                        console.log('✅ UI module loaded!');
+
+                        // UI loaded, now check other modules (optional)
+                        if (window.AuthUI && window.DashboardUI && window.DevicesUI) {
+                            console.log('✅ All modules loaded!');
+                            resolve();
+                        } else {
+                            console.log('⚠️ UI loaded but some components missing, proceeding anyway...');
+                            resolve(); // Proceed with UI even if components missing
+                        }
+                    } else if (attempts >= maxAttempts) {
+                        console.error('❌ Timeout waiting for UI module');
+                        resolve(); // Proceed anyway to avoid infinite wait
+                    } else {
+                        console.log('⏳ Waiting for UI module...');
+                        setTimeout(checkModules, 50);
+                    }
+                };
+                checkModules();
+            });
+        };
+
+        // Function to check if nav elements are ready
+        const waitForNavElements = () => {
+            return new Promise((resolve) => {
+                const checkNav = () => {
+                    const nav = document.getElementById('nav');
+                    const userDisplayName = document.getElementById('userDisplayName');
+                    const loginLink = document.getElementById('loginLink');
+
+                    console.log('Checking nav elements:');
+                    console.log('  nav:', !!nav);
+                    console.log('  userDisplayName:', !!userDisplayName);
+                    console.log('  loginLink:', !!loginLink);
+
+                    if (nav && userDisplayName && loginLink) {
+                        console.log('✅ Nav elements are ready');
+                        resolve();
+                    } else {
+                        console.log('⏳ Waiting for nav elements...');
+                        setTimeout(checkNav, 50);
+                    }
+                };
+                checkNav();
+            });
+        };
+
         (async () => {
             try {
+                // Load navigation first
+                console.log('Loading navigation...');
                 const navHtml = await fetch('assets/components/nav.html').then(r => r.text());
                 document.getElementById('nav').innerHTML = navHtml;
+                console.log('Navigation HTML loaded');
 
-                // Wait a bit for DOM to update, then initialize UI
-                setTimeout(() => {
-                    if (window.UI && typeof UI.updateAuthButton === 'function') {
-                        const isLoggedIn = !!localStorage.getItem('username');
-                        UI.updateAuthButton(isLoggedIn);
+                // Wait for nav elements to be ready
+                await waitForNavElements();
 
-                        // Show dashboard by default
-                        if (isLoggedIn) {
-                            UI.showDashboard();
+                // Quick auth check immediately after nav is ready
+                const token = localStorage.getItem('token');
+                const username = localStorage.getItem('username');
+                console.log('=== PAGE LOAD AUTH CHECK ===');
+                console.log('Token in localStorage:', !!token);
+                console.log('Username in localStorage:', username);
+
+                if (token && username) {
+                    console.log('Credentials found, will update UI after modules load');
+
+                    // Set up a function to run after UI module loads
+                    const runAuthCheck = () => {
+                        if (window.UI && typeof window.UI.quickAuthCheck === 'function') {
+                            console.log('Running quick auth check...');
+                            window.UI.quickAuthCheck();
+                            return true;
+                        }
+                        return false;
+                    };
+
+                    // Try immediately
+                    if (!runAuthCheck()) {
+                        // If not ready, try again after modules load
+                        console.log('UI not ready, will check after modules load...');
+                    }
+                } else {
+                    console.log('No credentials found in localStorage');
+                }
+
+                // Wait for UI module to load (main requirement)
+                await waitForModules();
+
+                // Quick auth check immediately when UI is available
+
+                if (token && username) {
+                    console.log('Credentials found, running quick auth check...');
+                    if (window.UI && typeof window.UI.quickAuthCheck === 'function') {
+                        window.UI.quickAuthCheck();
+                    } else {
+                        console.error('UI.quickAuthCheck not available after modules loaded');
+                    }
+                } else {
+                    console.log('No credentials found');
+                }
+
+                // Initialize UI (full check)
+                if (window.UI && typeof window.UI.init === 'function') {
+                    console.log('Initializing UI...');
+                    window.UI.init();
+                } else {
+                    console.error('❌ UI module still not loaded properly');
+                }
+
+                // Initialize UI (full check)
+                if (window.UI && typeof window.UI.init === 'function') {
+                    console.log('Initializing UI...');
+                    window.UI.init();
+                } else {
+                    console.error('UI module not loaded properly');
+                }
+
+                // Add global debug functions
+                window.checkLoginStatus = () => {
+                    if (window.UI && typeof UI.checkLoginStatus === 'function') {
+                        UI.checkLoginStatus();
+                    } else {
+                        console.error('UI.checkLoginStatus not available');
+                    }
+                };
+
+                window.forceRefreshUI = () => {
+                    if (window.UI && typeof UI.forceRefreshUI === 'function') {
+                        UI.forceRefreshUI();
+                    } else {
+                        console.error('UI.forceRefreshUI not available');
+                    }
+                };
+
+                window.quickAuthCheck = () => {
+                    if (window.UI && typeof UI.quickAuthCheck === 'function') {
+                        UI.quickAuthCheck();
+                    } else {
+                        console.error('UI.quickAuthCheck not available');
+                    }
+                };
+
+                window.testLogout = () => {
+                    console.log('🧪 Testing logout...');
+                    const logoutBtn = document.getElementById('logoutBtn');
+                    if (logoutBtn && logoutBtn.style.display !== 'none') {
+                        console.log('Found visible logout button, clicking...');
+                        logoutBtn.click();
+                    } else {
+                        console.log('Logout button not found or hidden, trying manual logout...');
+                        if (window.UI && typeof UI.manualLogout === 'function') {
+                            UI.manualLogout();
+                        } else {
+                            // Fallback manual logout
+                            localStorage.removeItem('token');
+                            localStorage.removeItem('username');
+                            console.log('Fallback manual logout completed');
                         }
                     }
-                }, 100);
+                };
+
+                window.showLogoutBtn = () => {
+                    const logoutBtn = document.getElementById('logoutBtn');
+                    const loginLink = document.getElementById('loginLink');
+                    if (logoutBtn) {
+                        logoutBtn.style.display = '';
+                        console.log('Logout button shown');
+                    }
+                    if (loginLink) {
+                        loginLink.style.display = 'none';
+                        console.log('Login link hidden');
+                    }
+                };
+
+                console.log('🔧 Debug functions:');
+                console.log('  - checkLoginStatus() : Verify login status');
+                console.log('  - forceRefreshUI() : Force refresh UI state');
+                console.log('  - quickAuthCheck() : Quick auth check');
+                console.log('  - testLogout() : Test logout functionality');
+                console.log('  - showLogoutBtn() : Force show logout button');
+                console.log('  - UI.manualLogout() : Direct UI logout');
+
+                // Add global debug functions
+                window.checkLoginStatus = () => {
+                    if (window.UI && typeof UI.checkLoginStatus === 'function') {
+                        UI.checkLoginStatus();
+                    } else {
+                        console.error('UI.checkLoginStatus not available');
+                    }
+                };
+
+                window.forceRefreshUI = () => {
+                    if (window.UI && typeof UI.forceRefreshUI === 'function') {
+                        UI.forceRefreshUI();
+                    } else {
+                        console.error('UI.forceRefreshUI not available');
+                    }
+                };
+
+                window.quickAuthCheck = () => {
+                    if (window.UI && typeof UI.quickAuthCheck === 'function') {
+                        UI.quickAuthCheck();
+                    } else {
+                        console.error('UI.quickAuthCheck not available');
+                    }
+                };
+
+                window.quickAuthCheck = () => {
+                    if (window.UI && typeof UI.quickAuthCheck === 'function') {
+                        UI.quickAuthCheck();
+                    } else {
+                        console.error('UI.quickAuthCheck not available');
+                    }
+                };
+
+                // Watch for nav changes and auto-update UI
+                const navObserver = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                        if (mutation.type === 'childList' && mutation.target.id === 'nav') {
+                            console.log('Nav content changed, checking authentication...');
+                            // Small delay to ensure DOM is updated
+                            setTimeout(() => {
+                                if (window.UI && typeof UI.init === 'function') {
+                                    const token = localStorage.getItem('token');
+                                    if (token) {
+                                        console.log('Token found, re-initializing UI...');
+                                        UI.init();
+                                    }
+                                }
+                            }, 50);
+                        }
+                    });
+                });
+
+                // Start observing nav changes
+                const navElement = document.getElementById('nav');
+                if (navElement) {
+                    navObserver.observe(navElement, { childList: true, subtree: true });
+                    console.log('Nav observer started');
+                } else {
+                    console.log('Nav element not found for observer');
+                }
+
+                // Additional check: monitor UI initialization
+                const checkUIInit = () => {
+                    if (window.uiInitialized) {
+                        console.log('UI initialized, running final auth check...');
+                        const token = localStorage.getItem('token');
+                        const username = localStorage.getItem('username');
+                        if (token && username && window.UI && typeof window.UI.quickAuthCheck === 'function') {
+                            window.UI.quickAuthCheck();
+                        }
+                    } else {
+                        setTimeout(checkUIInit, 100);
+                    }
+                };
+                setTimeout(checkUIInit, 200);
+
+                console.log('🔧 Debug functions:');
+                console.log('  - checkLoginStatus() : Verify login status with API call');
+                console.log('  - forceRefreshUI() : Force refresh UI state');
+                console.log('  - quickAuthCheck() : Quick auth check without API call');
+                console.log('  - UI.quickAuthCheck() : Direct call to UI method');
             } catch (error) {
                 console.error('Error loading navigation:', error);
             }

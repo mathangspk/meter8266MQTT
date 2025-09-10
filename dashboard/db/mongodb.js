@@ -69,8 +69,17 @@ async function closeConnection() {
 
 // Collections
 async function getUsersCollection() {
-    const database = await getDB();
-    return database.collection('users');
+    try {
+        console.log('Getting users collection...');
+        const database = await getDB();
+        console.log('Database obtained, getting users collection');
+        const collection = database.collection('users');
+        console.log('Users collection obtained successfully');
+        return collection;
+    } catch (error) {
+        console.error('Error getting users collection:', error);
+        throw error;
+    }
 }
 
 async function getDevicesCollection() {

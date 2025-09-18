@@ -826,6 +826,16 @@ body {
   color: var(--electric-blue) !important;
 }
 
+/* Fix dropdown menu layering - ensure it appears on top */
+.dropdown-menu {
+  z-index: 1050;
+  position: absolute;
+}
+
+.dropdown {
+  position: relative;
+}
+
 [data-theme="dark"] .btn-outline-dark,
 :root:not([data-theme="light"]) .btn-outline-dark {
   border-color: var(--glass-border) !important;

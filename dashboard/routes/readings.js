@@ -138,7 +138,8 @@ router.get('/:serial_number/stats', authenticateToken, async (req, res) => {
             case 'day':
                 endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
                 groupBy = { $dateToString: { format: "%Y-%m-%d %H:00:00", date: "$timestamp" } };
-                labelFormat = { $dateToString: { format: "%H:00", date: "$timestamp" } };
+                // Display UTC+7 time format for consistency
+                labelFormat = { $dateToString: { format: "%H:00", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
                 break;
             case 'week':
                 // Calculate proper week boundaries (Monday to Sunday)
@@ -155,19 +156,22 @@ router.get('/:serial_number/stats', authenticateToken, async (req, res) => {
                 endDate.setDate(startOfWeek.getDate() + 7);
                 endDate.setHours(0, 0, 0, 0);
 
-                // Remove timezone addition in MongoDB aggregation
+                // Remove timezone addition in MongoDB aggregation for data processing
                 groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } };
-                labelFormat = { $dateToString: { format: "%d/%m", date: "$timestamp" } };
+                // Display UTC+7 time format for consistency
+                labelFormat = { $dateToString: { format: "%d/%m", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
                 break;
             case 'month':
                 endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 1);
                 groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } };
-                labelFormat = { $dateToString: { format: "%d/%m", date: "$timestamp" } };
+                // Display UTC+7 time format for consistency
+                labelFormat = { $dateToString: { format: "%d/%m", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
                 break;
             case 'year':
                 endDate = new Date(startDate.getFullYear() + 1, 0, 1);
                 groupBy = { $dateToString: { format: "%Y-%m", date: "$timestamp" } };
-                labelFormat = { $dateToString: { format: "%m/%Y", date: "$timestamp" } };
+                // Display UTC+7 time format for consistency
+                labelFormat = { $dateToString: { format: "%m/%Y", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
                 break;
             default:
                 return res.status(400).json({ error: 'Invalid mode' });

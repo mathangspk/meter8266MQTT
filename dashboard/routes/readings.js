@@ -131,14 +131,14 @@ router.get('/:serial_number/stats', authenticateToken, async (req, res) => {
         }
 
         const readingsCollection = await getMeterReadingsCollection();
-        const startDate = new Date(start + "T00:00:00"); // Use local timezone
+        const startDate = new Date(start + "T00:00:00"); // Use local timezone for date parsing
         let endDate, groupBy, labelFormat;
 
         switch (mode) {
             case 'day':
                 endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
-                groupBy = { $dateToString: { format: "%Y-%m-%d %H:00:00", date: "$timestamp" } };
-                // Display UTC+7 time format for consistency
+                // Process and display everything in UTC+7 for consistency
+                groupBy = { $dateToString: { format: "%Y-%m-%d %H:00:00", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
                 labelFormat = { $dateToString: { format: "%H:00", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
                 break;
             case 'week':
@@ -156,32 +156,61 @@ router.get('/:serial_number/stats', authenticateToken, async (req, res) => {
                 endDate.setDate(startOfWeek.getDate() + 7);
                 endDate.setHours(0, 0, 0, 0);
 
-                // Remove timezone addition in MongoDB aggregation for data processing
-                groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } };
-                // Display UTC+7 time format for consistency
+                // Process and display in UTC+7 for consistency
+                groupBy = { $dateToString: { format: "%Y-%m-%d", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
                 labelFormat = { $dateToString: { format: "%d/%m", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
+                // Adjust week date range for UTC+7 processing
+                const utc7WeekStart = new Date(startOfWeek.getTime() - 7 * 60 * 60 * 1000);
+                const utc7WeekEnd = new Date(endDate.getTime() - 7 * 60 * 60 * 1000);
                 break;
             case 'month':
                 endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 1);
-                groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } };
-                // Display UTC+7 time format for consistency
+                // Process and display in UTC+7 for consistency
+                groupBy = { $dateToString: { format: "%Y-%m-%d", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
                 labelFormat = { $dateToString: { format: "%d/%m", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
+                // Adjust month date range for UTC+7 processing
+                const utc7MonthStart = new Date(startDate.getTime() - 7 * 60 * 60 * 1000);
+                const utc7MonthEnd = new Date(endDate.getTime() - 7 * 60 * 60 * 1000);
                 break;
             case 'year':
                 endDate = new Date(startDate.getFullYear() + 1, 0, 1);
-                groupBy = { $dateToString: { format: "%Y-%m", date: "$timestamp" } };
-                // Display UTC+7 time format for consistency
+                // Process and display in UTC+7 for consistency
+                groupBy = { $dateToString: { format: "%Y-%m", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
                 labelFormat = { $dateToString: { format: "%m/%Y", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
+                // Adjust year date range for UTC+7 processing
+                const utc7YearStart = new Date(startDate.getTime() - 7 * 60 * 60 * 1000);
+                const utc7YearEnd = new Date(endDate.getTime() - 7 * 60 * 60 * 1000);
                 break;
             default:
                 return res.status(400).json({ error: 'Invalid mode' });
+        }
+
+        // Use appropriate date range based on mode
+        let queryStart, queryEnd;
+        switch (mode) {
+            case 'day':
+                queryStart = new Date(startDate.getTime() - 7 * 60 * 60 * 1000);
+                queryEnd = new Date(endDate.getTime() - 7 * 60 * 60 * 1000);
+                break;
+            case 'week':
+                queryStart = utc7WeekStart;
+                queryEnd = utc7WeekEnd;
+                break;
+            case 'month':
+                queryStart = utc7MonthStart;
+                queryEnd = utc7MonthEnd;
+                break;
+            case 'year':
+                queryStart = utc7YearStart;
+                queryEnd = utc7YearEnd;
+                break;
         }
 
         const pipeline = [
             {
                 $match: {
                     serial_number,
-                    timestamp: { $gte: startDate, $lt: endDate }
+                    timestamp: { $gte: queryStart, $lt: queryEnd }
                 }
             },
             // Phải sort trước khi group!

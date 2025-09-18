@@ -801,6 +801,8 @@ body {
 /* Navbar Theme Support */
 .navbar {
   transition: all 0.3s ease;
+  position: relative;
+  z-index: 1000;
 }
 
 [data-theme="dark"] .navbar,
@@ -828,12 +830,41 @@ body {
 
 /* Fix dropdown menu layering - ensure it appears on top */
 .dropdown-menu {
-  z-index: 1050;
+  z-index: 9999 !important;
   position: absolute;
 }
 
 .dropdown {
   position: relative;
+}
+
+/* More specific targeting for navbar dropdown */
+.navbar .dropdown-menu {
+  z-index: 9999 !important;
+}
+
+/* Ensure dropdown is above all content */
+.dropdown.show .dropdown-menu {
+  z-index: 9999 !important;
+  transform: translate3d(0, 0, 1px);
+}
+
+/* Additional dropdown fixes */
+.navbar .dropdown {
+  position: static;
+}
+
+.navbar .dropdown-menu {
+  margin-top: 0;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xl);
+}
+
+/* Force dropdown to be visible */
+.dropdown-menu.show {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 [data-theme="dark"] .btn-outline-dark,

@@ -200,11 +200,30 @@ const DashboardUI = {
         const themeToggle = document.getElementById('themeToggle');
         if (!themeToggle) return;
 
-        // Load saved theme preference
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        this.setTheme(savedTheme);
-        themeToggle.checked = savedTheme === 'dark';
+        // Get system preference
+        const getSystemTheme = () => {
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        };
 
+        // Load saved theme preference or use system preference
+        const savedTheme = localStorage.getItem('theme');
+        const initialTheme = savedTheme || getSystemTheme();
+
+        this.setTheme(initialTheme);
+        themeToggle.checked = initialTheme === 'dark';
+
+        // Listen for system theme changes
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        mediaQuery.addEventListener('change', (e) => {
+            // Only auto-switch if no manual preference is saved
+            if (!localStorage.getItem('theme')) {
+                const systemTheme = e.matches ? 'dark' : 'light';
+                this.setTheme(systemTheme);
+                themeToggle.checked = systemTheme === 'dark';
+            }
+        });
+
+        // Manual theme toggle
         themeToggle.addEventListener('change', (e) => {
             const theme = e.target.checked ? 'dark' : 'light';
             this.setTheme(theme);
@@ -215,8 +234,32 @@ const DashboardUI = {
     setTheme(theme) {
         document.documentElement.setAttribute('data-theme', theme);
         const themeToggle = document.getElementById('themeToggle');
+        const themeLabel = document.getElementById('themeLabel');
+
         if (themeToggle) {
             themeToggle.checked = theme === 'dark';
+        }
+
+        if (themeLabel) {
+            themeLabel.textContent = theme === 'dark' ? 'Light' : 'Dark';
+        }
+
+        // Update CSS variables for immediate effect
+        if (theme === 'dark') {
+            document.documentElement.style.setProperty('--bg-primary', '#0a0a0a');
+            document.documentElement.style.setProperty('--bg-secondary', '#1a1a1a');
+            document.documentElement.style.setProperty('--bg-card', 'rgba(26, 26, 26, 0.95)');
+            document.documentElement.style.setProperty('--text-primary', '#ffffff');
+            document.documentElement.style.setProperty('--text-secondary', '#cccccc');
+            document.documentElement.style.setProperty('--text-muted', '#888888');
+        } else {
+            // Reset to light theme variables
+            document.documentElement.style.setProperty('--bg-primary', '#f8fafc');
+            document.documentElement.style.setProperty('--bg-secondary', '#ffffff');
+            document.documentElement.style.setProperty('--bg-card', 'rgba(255, 255, 255, 0.95)');
+            document.documentElement.style.setProperty('--text-primary', '#1a1a1a');
+            document.documentElement.style.setProperty('--text-secondary', '#666666');
+            document.documentElement.style.setProperty('--text-muted', '#999999');
         }
     },
 

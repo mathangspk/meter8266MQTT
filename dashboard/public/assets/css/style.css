@@ -367,9 +367,9 @@ body {
   }
 }
 
-/* Dark Mode Support */
+/* Dark Mode Support - follows system preference */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg-primary: #0a0a0a;
     --bg-secondary: #1a1a1a;
     --bg-card: rgba(26, 26, 26, 0.95);
@@ -380,46 +380,105 @@ body {
     --glass-border: rgba(255, 255, 255, 0.1);
   }
 
-  .card-header {
+  :root:not([data-theme="light"]) .card-header {
     background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
 
-  .table thead th {
+  :root:not([data-theme="light"]) .table thead th {
     background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
   }
 
   /* Form controls in dark mode */
-  .form-control, .form-select {
+  :root:not([data-theme="light"]) .form-control,
+  :root:not([data-theme="light"]) .form-select {
     background: var(--bg-secondary);
     border-color: rgba(255, 255, 255, 0.2);
     color: var(--text-primary);
   }
 
-  .form-control:focus, .form-select:focus {
+  :root:not([data-theme="light"]) .form-control:focus,
+  :root:not([data-theme="light"]) .form-select:focus {
     background: var(--bg-secondary);
     border-color: var(--electric-blue);
     color: var(--text-primary);
   }
 
-  .form-control::placeholder, .form-select::placeholder {
+  :root:not([data-theme="light"]) .form-control::placeholder,
+  :root:not([data-theme="light"]) .form-select::placeholder {
     color: var(--text-muted);
   }
 
   /* Date picker specific styles for dark mode */
-  input[type="date"] {
+  :root:not([data-theme="light"]) input[type="date"] {
     color: var(--text-primary);
   }
 
-  input[type="date"]::-webkit-calendar-picker-indicator {
+  :root:not([data-theme="light"]) input[type="date"]::-webkit-calendar-picker-indicator {
     filter: invert(1);
   }
 
   /* Select dropdown options in dark mode */
-  .form-select option {
+  :root:not([data-theme="light"]) .form-select option {
     background: var(--bg-secondary);
     color: var(--text-primary);
   }
+}
+
+/* Manual theme override */
+[data-theme="dark"] {
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #1a1a1a;
+  --bg-card: rgba(26, 26, 26, 0.95);
+  --text-primary: #ffffff;
+  --text-secondary: #cccccc;
+  --text-muted: #888888;
+  --glass-bg: rgba(26, 26, 26, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .card-header {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .table thead th {
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+}
+
+/* Form controls in manual dark mode */
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+  background: var(--bg-secondary);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .form-select:focus {
+  background: var(--bg-secondary);
+  border-color: var(--electric-blue);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .form-control::placeholder,
+[data-theme="dark"] .form-select::placeholder {
+  color: var(--text-muted);
+}
+
+/* Date picker specific styles for manual dark mode */
+[data-theme="dark"] input[type="date"] {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* Select dropdown options in manual dark mode */
+[data-theme="dark"] .form-select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 /* Multiple Charts Grid Layout */
@@ -737,6 +796,53 @@ body {
         align-items: center;
         justify-content: center;
     }
+}
+
+/* Navbar Theme Support */
+.navbar {
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .navbar,
+:root:not([data-theme="light"]) .navbar {
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%) !important;
+  border-bottom-color: var(--glass-border) !important;
+}
+
+[data-theme="dark"] .dropdown-menu,
+:root:not([data-theme="light"]) .dropdown-menu {
+  background: var(--bg-card) !important;
+  border-color: var(--glass-border) !important;
+}
+
+[data-theme="dark"] .dropdown-item,
+:root:not([data-theme="light"]) .dropdown-item {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .dropdown-item:hover,
+:root:not([data-theme="light"]) .dropdown-item:hover {
+  background: rgba(0, 212, 255, 0.1) !important;
+  color: var(--electric-blue) !important;
+}
+
+[data-theme="dark"] .btn-outline-dark,
+:root:not([data-theme="light"]) .btn-outline-dark {
+  border-color: var(--glass-border) !important;
+  color: var(--text-primary) !important;
+  background: var(--bg-card) !important;
+}
+
+[data-theme="dark"] .btn-outline-dark:hover,
+:root:not([data-theme="light"]) .btn-outline-dark:hover {
+  background: var(--electric-blue) !important;
+  border-color: var(--electric-blue) !important;
+  color: white !important;
+}
+
+/* Theme transition effects */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 /* Utility Classes */

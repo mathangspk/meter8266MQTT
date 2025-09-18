@@ -131,29 +131,43 @@ router.get('/:serial_number/stats', authenticateToken, async (req, res) => {
         }
 
         const readingsCollection = await getMeterReadingsCollection();
-        const startDate = new Date(start + "T00:00:00+07:00"); // chuẩn hóa UTC+7
+        const startDate = new Date(start + "T00:00:00"); // Use local timezone
         let endDate, groupBy, labelFormat;
 
         switch (mode) {
             case 'day':
                 endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
-                groupBy = { $dateToString: { format: "%Y-%m-%d %H:00:00", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
-                labelFormat = { $dateToString: { format: "%H:00", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
+                groupBy = { $dateToString: { format: "%Y-%m-%d %H:00:00", date: "$timestamp" } };
+                labelFormat = { $dateToString: { format: "%H:00", date: "$timestamp" } };
                 break;
             case 'week':
-                endDate = new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-                groupBy = { $dateToString: { format: "%Y-%m-%d", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
-                labelFormat = { $dateToString: { format: "%d/%m", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
+                // Calculate proper week boundaries (Monday to Sunday)
+                const startOfWeek = new Date(startDate);
+                const dayOfWeek = startDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+                // Adjust to Monday of the selected week
+                const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // If Sunday, go back 6 days; otherwise adjust to Monday
+                startOfWeek.setDate(startDate.getDate() + mondayOffset);
+                startOfWeek.setHours(0, 0, 0, 0);
+
+                // End date is Sunday of the same week
+                endDate = new Date(startOfWeek);
+                endDate.setDate(startOfWeek.getDate() + 7);
+                endDate.setHours(0, 0, 0, 0);
+
+                // Remove timezone addition in MongoDB aggregation
+                groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } };
+                labelFormat = { $dateToString: { format: "%d/%m", date: "$timestamp" } };
                 break;
             case 'month':
                 endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 1);
-                groupBy = { $dateToString: { format: "%Y-%m-%d", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
-                labelFormat = { $dateToString: { format: "%d/%m", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
+                groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } };
+                labelFormat = { $dateToString: { format: "%d/%m", date: "$timestamp" } };
                 break;
             case 'year':
                 endDate = new Date(startDate.getFullYear() + 1, 0, 1);
-                groupBy = { $dateToString: { format: "%Y-%m", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
-                labelFormat = { $dateToString: { format: "%m/%Y", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
+                groupBy = { $dateToString: { format: "%Y-%m", date: "$timestamp" } };
+                labelFormat = { $dateToString: { format: "%m/%Y", date: "$timestamp" } };
                 break;
             default:
                 return res.status(400).json({ error: 'Invalid mode' });
@@ -197,8 +211,16 @@ router.get('/:serial_number/stats', authenticateToken, async (req, res) => {
         if (mode === 'day') {
             for (let h = 0; h < 24; h++) bucketLabels.push(`${pad2(h)}:00`);
         } else if (mode === 'week') {
+            // Generate labels from Monday to Sunday of the selected week
+            const weekStart = new Date(startDate);
+            const dayOfWeek = startDate.getDay();
+
+            // Find Monday of the selected week
+            const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            weekStart.setDate(startDate.getDate() + mondayOffset);
+
             for (let i = 0; i < 7; i++) {
-                const d = new Date(startDate.getTime() + i * 24 * 3600 * 1000);
+                const d = new Date(weekStart.getTime() + i * 24 * 3600 * 1000);
                 bucketLabels.push(`${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}`);
             }
         } else if (mode === 'month') {

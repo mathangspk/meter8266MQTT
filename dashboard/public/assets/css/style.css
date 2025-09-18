@@ -388,6 +388,38 @@ body {
   .table thead th {
     background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
   }
+
+  /* Form controls in dark mode */
+  .form-control, .form-select {
+    background: var(--bg-secondary);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+  }
+
+  .form-control:focus, .form-select:focus {
+    background: var(--bg-secondary);
+    border-color: var(--electric-blue);
+    color: var(--text-primary);
+  }
+
+  .form-control::placeholder, .form-select::placeholder {
+    color: var(--text-muted);
+  }
+
+  /* Date picker specific styles for dark mode */
+  input[type="date"] {
+    color: var(--text-primary);
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+
+  /* Select dropdown options in dark mode */
+  .form-select option {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+  }
 }
 
 /* Multiple Charts Grid Layout */

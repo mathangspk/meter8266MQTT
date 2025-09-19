@@ -245,15 +245,18 @@ router.get('/:serial_number/stats', authenticateToken, async (req, res) => {
                 bucketLabels.push(`${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}`);
             }
         } else if (mode === 'month') {
-            // Generate month labels in UTC+7 for consistency
-            const year = startDate.getFullYear();
-            const month = startDate.getMonth();
+            // Generate month labels in UTC+7 for consistency (aligned with data processing)
+            const utc7StartDate = new Date(startDate.getTime() + 7 * 60 * 60 * 1000);
+            const year = utc7StartDate.getFullYear();
+            const month = utc7StartDate.getMonth();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             for (let d = 1; d <= daysInMonth; d++) {
                 bucketLabels.push(`${pad2(d)}/${pad2(month + 1)}`);
             }
         } else if (mode === 'year') {
-            const year = startDate.getFullYear();
+            // Generate year labels in UTC+7 for consistency (aligned with data processing)
+            const utc7StartDate = new Date(startDate.getTime() + 7 * 60 * 60 * 1000);
+            const year = utc7StartDate.getFullYear();
             for (let m = 1; m <= 12; m++) bucketLabels.push(`${pad2(m)}/${year}`);
         }
 

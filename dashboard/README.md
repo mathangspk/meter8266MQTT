@@ -27,6 +27,7 @@ A comprehensive web-based dashboard for managing electricity meters and monitori
 - **Power consumption trends**
 - **Energy usage statistics**
 - **Device performance metrics**
+- **UTC+7 Timezone Support** for accurate regional reporting
 
 ## 🛠️ Installation
 
@@ -150,6 +151,58 @@ CREATE TABLE meter_readings (
 
 ### Dashboard
 - `GET /api/dashboard/stats` - Get dashboard statistics
+
+## 🕐 Timezone Handling (UTC+7)
+
+The dashboard implements comprehensive UTC+7 timezone support for accurate regional reporting and data consistency.
+
+### Week Mode UTC+7 Implementation
+
+```mermaid
+graph TD
+    A[User Selects Date] --> B[Calculate Week Boundaries]
+    B --> C[Find Monday of Selected Week]
+    C --> D[Generate UTC+7 Bucket Labels]
+    D --> E[Query Data in UTC+7 Range]
+    E --> F[Return Formatted Results]
+
+    B --> G[Local Time Processing]
+    G --> H[Convert to UTC+7 for Buckets]
+    H --> I[Ensure Monday-Sunday Boundaries]
+```
+
+### Timezone Logic Flow
+
+1. **Input Processing**: User selects any day of the week
+2. **Week Boundary Calculation**:
+   - Find Monday of the selected week (UTC+7)
+   - Set Sunday as week end (UTC+7)
+3. **Bucket Generation**: Create 7 daily buckets in UTC+7
+4. **Data Query**: Query database using UTC+7 time range
+5. **Result Formatting**: Return data aligned with UTC+7 buckets
+
+### Test Coverage
+
+Run comprehensive tests with:
+```bash
+node test-week-utc7.js
+```
+
+**Test Cases Include:**
+- ✅ Monday selection (week start)
+- ✅ Wednesday selection (mid-week)
+- ✅ Sunday selection (week end)
+- ✅ Month boundary transitions
+- ✅ Year boundary transitions
+
+### Example Week Calculation
+
+```
+Input: Wednesday, January 17, 2024
+Week Start: Monday, January 15, 2024 (UTC+7)
+Week End: Monday, January 22, 2024 (UTC+7)
+Buckets: [15/01, 16/01, 17/01, 18/01, 19/01, 20/01, 21/01]
+```
 
 ## 🔧 Configuration
 
@@ -296,24 +349,80 @@ CMD ["npm", "start"]
 ### Common Issues
 
 1. **MQTT Connection Failed**
-   - Check if Mosquitto is running
-   - Verify MQTT broker URL
-   - Check firewall settings
+    - Check if Mosquitto is running
+    - Verify MQTT broker URL
+    - Check firewall settings
 
 2. **Database Errors**
-   - Ensure write permissions to data directory
-   - Check SQLite installation
-   - Verify database file path
+    - Ensure write permissions to data directory
+    - Check SQLite installation
+    - Verify database file path
 
 3. **WebSocket Connection Issues**
-   - Check if port 8080 is available
-   - Verify WebSocket server is running
-   - Check browser console for errors
+    - Check if port 8080 is available
+    - Verify WebSocket server is running
+    - Check browser console for errors
+
+4. **HTTPS/Mixed Content Issues**
+    - Ensure SSL certificates are properly configured
+    - Check `server.js` for HTTPS setup
+    - Verify API_BASE URLs use HTTPS in production
+    - Disable COOP headers if needed: `Cross-Origin-Opener-Policy: unsafe-none`
+
+5. **Timezone/Date Display Issues**
+    - Verify UTC+7 implementation in `routes/readings.js`
+    - Run `node test-week-utc7.js` to validate week calculations
+    - Check browser timezone settings
+    - Ensure date picker selections align with UTC+7 boundaries
+
+6. **UI/Dropdown Issues**
+    - Check z-index values in `public/assets/css/style.css`
+    - Verify dark mode toggle functionality
+    - Ensure navbar and dropdown styling is consistent
 
 ### Logs
 - Server logs are displayed in the console
 - Check browser developer tools for client-side errors
 - Database queries are logged for debugging
+
+## 🆕 Recent Updates & Improvements
+
+### v2.1.0 - UTC+7 Timezone & UI Enhancements
+
+#### ✅ **UTC+7 Timezone Support**
+- **Week Mode Fix**: Corrected Monday-Sunday boundaries for UTC+7
+- **Bucket Generation**: Proper UTC+7 date labels for weekly statistics
+- **Edge Case Handling**: Month and year boundary transitions
+- **Test Coverage**: Comprehensive test suite (`test-week-utc7.js`)
+
+#### ✅ **HTTPS & Security Improvements**
+- **SSL Implementation**: Self-signed certificate setup for development
+- **Mixed Content Fix**: Resolved HTTP/HTTPS protocol conflicts
+- **COOP Headers**: Disabled for cross-origin compatibility
+- **CORS Configuration**: Updated for secure API access
+
+#### ✅ **UI/UX Enhancements**
+- **Dark Mode**: System-following theme with manual override
+- **Dropdown Z-Index**: Fixed user dropdown visibility issues
+- **Responsive Design**: Improved mobile compatibility
+- **Theme Consistency**: Proper styling across light/dark modes
+
+#### ✅ **Code Quality**
+- **Error Handling**: Enhanced error reporting and logging
+- **Performance**: Optimized timezone calculations
+- **Documentation**: Comprehensive README updates with flowcharts
+- **UTC+7 Consistency**: Fixed month and year mode bucket generation to use UTC+7
+
+### Files Modified
+- `routes/readings.js` - UTC+7 week/month/year logic implementation
+- `server.js` - HTTPS setup and COOP header fixes
+- `public/assets/css/style.css` - Dark mode and z-index fixes
+- `public/assets/js/ui.dashboard.js` - Theme toggle functionality
+- `public/assets/components/nav.html` - Theme-aware navbar styling
+- `README.md` - Documentation updates
+- `test-week-utc7.js` - Week mode test suite
+- `test-month-utc7.js` - Month mode test suite
+- `test-year-utc7.js` - Year mode test suite
 
 ## 📞 Support
 
@@ -322,6 +431,7 @@ For issues and questions:
 2. Review the API documentation
 3. Check browser console for errors
 4. Verify MQTT broker connectivity
+5. Run timezone tests: `node test-week-utc7.js`
 
 ## 🔄 Updates
 

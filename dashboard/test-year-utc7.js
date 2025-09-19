@@ -28,14 +28,17 @@ const testYearMode = () => {
 const testYearCalculation = (startDate, testName) => {
     console.log(`Input Date: ${startDate.toISOString().split('T')[0]} (${startDate.toLocaleDateString('en-US', { year: 'numeric' })})`);
 
-    // Calculate year boundaries (same logic as in readings.js)
+    // Calculate year boundaries (FIXED: same logic as in readings.js)
+    const startOfYear = new Date(startDate.getFullYear(), 0, 1);
+    startOfYear.setHours(0, 0, 0, 0);
     const endDate = new Date(startDate.getFullYear() + 1, 0, 1);
+    endDate.setHours(0, 0, 0, 0);
 
-    console.log(`Year Start (Local): ${startDate.toISOString().split('T')[0]}`);
+    console.log(`Year Start (Local): ${startOfYear.toISOString().split('T')[0]}`);
     console.log(`Year End (Local): ${endDate.toISOString().split('T')[0]}`);
 
-    // UTC+7 conversion for bucket generation (NEW: consistent with data processing)
-    const utc7StartDate = new Date(startDate.getTime() + 7 * 60 * 60 * 1000);
+    // UTC+7 conversion for bucket generation (consistent with data processing)
+    const utc7StartDate = new Date(startOfYear.getTime() + 7 * 60 * 60 * 1000);
     const utc7EndDate = new Date(endDate.getTime() + 7 * 60 * 60 * 1000);
 
     console.log(`UTC+7 Year Start: ${utc7StartDate.toISOString().split('T')[0]}`);
@@ -53,8 +56,8 @@ const testYearCalculation = (startDate, testName) => {
     console.log(`Bucket Labels: [${bucketLabels.join(', ')}]`);
     console.log(`Year for Labels: ${year}`);
 
-    // Query range calculation (same as in readings.js)
-    const queryStart = new Date(startDate.getTime() - 7 * 60 * 60 * 1000);
+    // Query range calculation (FIXED: now queries entire year)
+    const queryStart = new Date(startOfYear.getTime() - 7 * 60 * 60 * 1000);
     const queryEnd = new Date(endDate.getTime() - 7 * 60 * 60 * 1000);
 
     console.log(`Query Range: ${queryStart.toISOString()} to ${queryEnd.toISOString()}`);

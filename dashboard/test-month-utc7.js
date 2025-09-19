@@ -33,14 +33,17 @@ const testMonthMode = () => {
 const testMonthCalculation = (startDate, testName) => {
     console.log(`Input Date: ${startDate.toISOString().split('T')[0]} (${startDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })})`);
 
-    // Calculate month boundaries (same logic as in readings.js)
+    // Calculate month boundaries (same logic as in readings.js - FIXED)
+    const startOfMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+    startOfMonth.setHours(0, 0, 0, 0);
     const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 1);
+    endDate.setHours(0, 0, 0, 0);
 
-    console.log(`Month Start (Local): ${startDate.toISOString().split('T')[0]}`);
+    console.log(`Month Start (Local): ${startOfMonth.toISOString().split('T')[0]}`);
     console.log(`Month End (Local): ${endDate.toISOString().split('T')[0]}`);
 
-    // UTC+7 conversion for bucket generation (NEW: consistent with data processing)
-    const utc7StartDate = new Date(startDate.getTime() + 7 * 60 * 60 * 1000);
+    // UTC+7 conversion for bucket generation (consistent with data processing)
+    const utc7StartDate = new Date(startOfMonth.getTime() + 7 * 60 * 60 * 1000);
     const utc7EndDate = new Date(endDate.getTime() + 7 * 60 * 60 * 1000);
 
     console.log(`UTC+7 Month Start: ${utc7StartDate.toISOString().split('T')[0]}`);
@@ -60,8 +63,8 @@ const testMonthCalculation = (startDate, testName) => {
     console.log(`Days in Month: ${daysInMonth}`);
     console.log(`Bucket Labels: [${bucketLabels.slice(0, 5).join(', ')}${bucketLabels.length > 5 ? '...' : ''}] (${bucketLabels.length} days)`);
 
-    // Query range calculation (same as in readings.js)
-    const queryStart = new Date(startDate.getTime() - 7 * 60 * 60 * 1000);
+    // Query range calculation (FIXED: now queries entire month)
+    const queryStart = new Date(startOfMonth.getTime() - 7 * 60 * 60 * 1000);
     const queryEnd = new Date(endDate.getTime() - 7 * 60 * 60 * 1000);
 
     console.log(`Query Range: ${queryStart.toISOString()} to ${queryEnd.toISOString()}`);

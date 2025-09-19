@@ -145,7 +145,7 @@ router.get('/:serial_number/stats', authenticateToken, async (req, res) => {
                 queryEnd = new Date(endDate.getTime() - 7 * 60 * 60 * 1000);
                 break;
             case 'week':
-                // Calculate proper week boundaries (Monday to Sunday)
+                // Calculate proper week boundaries (Monday to Sunday) in UTC+7
                 const startOfWeek = new Date(startDate);
                 const dayOfWeek = startDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
 
@@ -162,7 +162,7 @@ router.get('/:serial_number/stats', authenticateToken, async (req, res) => {
                 // Process and display in UTC+7 for consistency
                 groupBy = { $dateToString: { format: "%Y-%m-%d", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
                 labelFormat = { $dateToString: { format: "%d/%m", date: { $add: ["$timestamp", 7 * 3600 * 1000] } } };
-                // Adjust week date range for UTC+7 processing
+                // Adjust week date range for UTC+7 processing (consistent with aggregation)
                 queryStart = new Date(startOfWeek.getTime() - 7 * 60 * 60 * 1000);
                 queryEnd = new Date(endDate.getTime() - 7 * 60 * 60 * 1000);
                 break;
@@ -228,19 +228,24 @@ router.get('/:serial_number/stats', authenticateToken, async (req, res) => {
         if (mode === 'day') {
             for (let h = 0; h < 24; h++) bucketLabels.push(`${pad2(h)}:00`);
         } else if (mode === 'week') {
-            // Generate labels from Monday to Sunday of the selected week
+            // Generate labels from Monday to Sunday in UTC+7 (consistent with data processing)
             const weekStart = new Date(startDate);
             const dayOfWeek = startDate.getDay();
 
-            // Find Monday of the selected week
+            // Find Monday of the selected week (in local time first)
             const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
             weekStart.setDate(startDate.getDate() + mondayOffset);
+            weekStart.setHours(0, 0, 0, 0);
+
+            // Convert to UTC+7 for consistent label generation
+            const utc7WeekStart = new Date(weekStart.getTime() + 7 * 60 * 60 * 1000);
 
             for (let i = 0; i < 7; i++) {
-                const d = new Date(weekStart.getTime() + i * 24 * 3600 * 1000);
+                const d = new Date(utc7WeekStart.getTime() + i * 24 * 3600 * 1000);
                 bucketLabels.push(`${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}`);
             }
         } else if (mode === 'month') {
+            // Generate month labels in UTC+7 for consistency
             const year = startDate.getFullYear();
             const month = startDate.getMonth();
             const daysInMonth = new Date(year, month + 1, 0).getDate();

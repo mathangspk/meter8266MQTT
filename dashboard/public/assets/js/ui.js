@@ -1,3 +1,5 @@
+console.log('Loading ui.js...');
+console.log('Loading ui.js...');
 const UI = {
     async init() {
         console.log('UI.init() called');
@@ -87,6 +89,16 @@ const UI = {
 
     showUserRegister: () => AuthUI.showUserRegister(),
     showUserLogin: () => AuthUI.showUserLogin(),
+
+    showSettings: () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            console.log('Please login to access settings');
+            UI.showUserLogin();
+            return;
+        }
+        SettingsUI.showSettings();
+    },
 
     updateAuthButton(isLoggedIn) {
         console.log('updateAuthButton called with isLoggedIn:', isLoggedIn);

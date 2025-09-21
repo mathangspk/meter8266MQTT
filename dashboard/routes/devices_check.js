@@ -259,4 +259,27 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     }
 });
 
+// Update device theo serial_number
+router.put('/serial/:serial_number', authenticateToken, async (req, res) => {
+    try {
+        const { name, location, ota_url, status } = req.body;
+        const devicesCollection = await getDevicesCollection();
+
+        // Chỉ update nếu device thuộc về user hiện tại
+        const result = await devicesCollection.updateOne(
+            { serial_number: req.params.serial_number, username: req.user.username },
+            { $set: { name, location, ota_url, status, updated_at: new Date() } }
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ error: 'Device not found or access denied' });
+        }
+
+        res.json({ message: 'Device updated successfully' });
+    } catch (error) {
+        console.error('Update device error:', error);
+        return res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;

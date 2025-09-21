@@ -1,68 +1,43 @@
-// routes/devices.js
 const express = require('express');
 const db = require('../db/database');
-
 const router = express.Router();
 
-// Lấy tất cả thiết bị, sắp xếp theo last_seen
+// --- Devices CRUD ---
+// Lấy tất cả devices
 router.get('/', (req, res) => {
     db.all(`SELECT * FROM devices ORDER BY last_seen DESC`, (err, rows) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        res.json(rows);
-    });
-});
-
-// Lấy lịch sử readings của một thiết bị
-router.get('/:deviceId/readings', (req, res) => {
-    const { deviceId } = req.params;
-    const { limit = 100, from, to } = req.query;
-
-    let query = `SELECT * FROM meter_readings WHERE device_id = ?`;
-    let params = [deviceId];
-
-    if (from && to) {
-        query += ` AND timestamp BETWEEN ? AND ?`;
-        params.push(from, to);
-    }
-
-    query += ` ORDER BY timestamp DESC LIMIT ?`;
-    params.push(parseInt(limit));
-
-    db.all(query, params, (err, rows) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        res.json(rows);
-    });
-});
-
-// Thêm một thiết bị mới
-router.post('/', (req, res) => {
-    const { serial_number, device_id, name, location, status, username } = req.body;
-    if (!serial_number || !device_id || !username) {
-        return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    const query = `INSERT INTO devices (serial_number, device_id, name, location, status, username) VALUES (?, ?, ?, ?, ?, ?)`;
-    db.run(query, [serial_number, device_id, name || '', location || '', status || 'active', username], function (err) {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        res.status(201).json({ id: this.lastID });
-    });
-});
-
-router.get('/by-user/:username', (req, res) => {
-    const { username } = req.params;
-    db.all(`SELECT * FROM devices WHERE username = ?`, [username], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(rows);
     });
 });
 
-// Xoá một thiết bị
+// Thêm device mới
+router.post('/', (req, res) => {
+    const { serial_number, device_id, name, location, status, username } = req.body;
+    if (!serial_number || !device_id || !username) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+    const query = `INSERT INTO devices (serial_number, device_id, name, location, status, username) 
+                   VALUES (?, ?, ?, ?, ?, ?)`;
+    db.run(query, [serial_number, device_id, name || '', location || '', status || 'active', username], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.status(201).json({ id: this.lastID });
+    });
+});
+
+// Update device theo serial_number (RESTful)
+router.put('/:serial_number', (req, res) => {
+    const { serial_number } = req.params;
+    const { name, location, status } = req.body;
+    const query = `UPDATE devices SET name=?, location=?, status=? WHERE serial_number=?`;
+    db.run(query, [name || "", location || "", status || "active", serial_number], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        if (this.changes === 0) return res.status(404).json({ error: "Device not found" });
+        res.json({ message: "Device updated" });
+    });
+});
+
+// Xoá device theo id
 router.delete('/:id', (req, res) => {
     const { id } = req.params;
     db.run('DELETE FROM devices WHERE id = ?', [id], function (err) {
@@ -71,6 +46,16 @@ router.delete('/:id', (req, res) => {
     });
 });
 
+// Lấy devices theo username
+router.get('/by-user/:username', (req, res) => {
+    const { username } = req.params;
+    db.all(`SELECT * FROM devices WHERE username = ?`, [username], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Lấy device theo serial
 router.get('/by-serial/:serial_number', (req, res) => {
     const { serial_number } = req.params;
     db.get('SELECT * FROM devices WHERE serial_number = ?', [serial_number], (err, row) => {
@@ -79,12 +64,15 @@ router.get('/by-serial/:serial_number', (req, res) => {
     });
 });
 
+// --- Meter readings ---
+// Latest reading
 router.get('/:serial_number/latest-reading', (req, res) => {
-    console.log('Fetching latest reading for serial:', req.params.serial_number);
-    console.log('Query params:', req.query);
     const { serial_number } = req.params;
     db.get(
-        `SELECT voltage, current, power, energy, timestamp FROM meter_readings WHERE serial_number = ? ORDER BY timestamp DESC LIMIT 1`,
+        `SELECT voltage, current, power, energy, timestamp 
+         FROM meter_readings 
+         WHERE serial_number = ? 
+         ORDER BY timestamp DESC LIMIT 1`,
         [serial_number],
         (err, row) => {
             if (err) return res.status(500).json({ error: err.message });
@@ -93,15 +81,15 @@ router.get('/:serial_number/latest-reading', (req, res) => {
     );
 });
 
+// All readings (limit, from-to)
 router.get('/:serial_number/readings', (req, res) => {
-    console.log('Fetching readings for serial:', req.params.serial_number);
-    console.log('Query params:', req.query);
-
     const { serial_number } = req.params;
-
     const limit = parseInt(req.query.limit, 10) || 10;
     db.all(
-        `SELECT voltage, current, power, energy, timestamp FROM meter_readings WHERE serial_number = ? ORDER BY timestamp DESC LIMIT ?`,
+        `SELECT voltage, current, power, energy, timestamp 
+         FROM meter_readings 
+         WHERE serial_number = ? 
+         ORDER BY timestamp DESC LIMIT ?`,
         [serial_number, limit],
         (err, rows) => {
             if (err) return res.status(500).json({ error: err.message });
@@ -109,6 +97,5 @@ router.get('/:serial_number/readings', (req, res) => {
         }
     );
 });
-
 
 module.exports = router;

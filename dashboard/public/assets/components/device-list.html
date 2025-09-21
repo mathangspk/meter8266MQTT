@@ -102,3 +102,19 @@
         </nav>
     </div>
 </section>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const deviceContainer = document.getElementById('deviceContainer');
+
+        if (deviceContainer) {
+            deviceContainer.addEventListener('click', function (event) {
+                if (event.target.classList.contains('edit-device-btn')) {
+                    const deviceId = event.target.getAttribute('data-id');
+                    console.log("Edit button clicked for device ID: " + deviceId);
+                    // Call your editDevice function here, passing the deviceId
+                    DevicesUI.editDevice(deviceId);
+                }
+            });
+        }
+    });
+</script>

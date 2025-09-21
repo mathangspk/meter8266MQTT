@@ -11,6 +11,55 @@ const DevicesUI = {
         statsChart: null
     },
 
+    async showDeviceEdit(serialNumber) {
+        const html = await fetch('assets/components/device-edit.html').then(res => res.text());
+        document.getElementById('content').innerHTML = html;
+
+        const data = await API.fetchDeviceDetail(serialNumber);
+
+        document.getElementById('deviceName').value = data.name ?? '';
+        document.getElementById('deviceLocation').value = data.location ?? '';
+        document.getElementById('deviceOTAUrl').value = data.ota_url ?? '';
+        document.getElementById('deviceStatus').value = data.status ?? 'active';
+
+        document.getElementById('editDeviceForm').onsubmit = (event) => {
+            event.preventDefault();
+            this.saveDeviceChanges(serialNumber);
+        };
+
+        document.getElementById('cancelEdit').onclick = () => {
+            this.showDeviceDetail(serialNumber);
+        };
+    },
+
+    async saveDeviceChanges(serialNumber) {
+        const name = document.getElementById('deviceName').value;
+        const location = document.getElementById('deviceLocation').value;
+        const otaUrl = document.getElementById('deviceOTAUrl').value; // Currently not used
+        const status = document.getElementById('deviceStatus').value;
+
+        const updatedDevice = {
+            name: name,
+            location: location,
+            ota_url: otaUrl,
+            status: status
+        };
+        try {
+            const result = await API.updateDevice(serialNumber, updatedDevice);
+
+            if (result.error) {
+                console.error('Error updating device:', result.error);
+                alert('Failed to update device. Please check the console for details.'); // Added error alert
+            } else {
+                console.log('Device updated successfully');
+                this.showDeviceDetail(serialNumber);
+            }
+        } catch (error) {
+            console.error('An unexpected error occurred:', error);
+            alert('An unexpected error occurred. Please check the console for details.'); // Added error alert
+        }
+    },
+
     async showDeviceList() {
         if (window.latestReadingInterval) clearInterval(window.latestReadingInterval);
         const html = await fetch('assets/components/device-list.html').then(res => res.text());
@@ -82,6 +131,9 @@ const DevicesUI = {
                                  <button class="btn btn-outline-primary btn-sm flex-fill detail-device-btn" data-serial="${device.serial_number}">
                                      <i class="bi bi-eye me-1"></i>View Details
                                  </button>
+                                 <button class="btn btn-outline-warning btn-sm edit-device-btn" data-serial="${device.serial_number}">
+                                     <i class="bi bi-pencil me-1"></i>Edit
+                                 </button>
                                  <button class="btn btn-outline-danger btn-sm delete-device-btn" data-id="${device._id ? device._id.toString() : device.id}">
                                      <i class="bi bi-trash me-1"></i>Delete
                                  </button>
@@ -118,6 +170,12 @@ const DevicesUI = {
             btn.onclick = async () => {
                 const serialNumber = btn.getAttribute('data-serial');
                 UI.showRealtimeMonitoring(serialNumber);
+            };
+        });
+        document.querySelectorAll('.edit-device-btn').forEach(btn => {
+            btn.onclick = async () => {
+                const serialNumber = btn.getAttribute('data-serial');
+                DevicesUI.showDeviceEdit(serialNumber);
             };
         });
     },
@@ -196,6 +254,7 @@ const DevicesUI = {
         document.getElementById('deviceStatus').innerText = data.status ?? '';
         document.getElementById('deviceLastSeen').innerText = data.last_seen ?? '';
         await this.updateLatestReading();
+        //await this.loadFirmwareInfo(); // Load firmware information
         this.detailState.latestReadingTimer = setInterval(() => this.updateLatestReading(), 5000);
         window.latestReadingInterval = this.detailState.latestReadingTimer;
     },
@@ -302,8 +361,6 @@ const DevicesUI = {
             this.detailState.statsChart = null;
         }
     },
-
-
 
     // Simplified - charts update immediately when data is added
 };

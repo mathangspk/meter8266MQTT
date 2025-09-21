@@ -6,8 +6,24 @@ const devicesRouter = require('./devices_check');
 const readingsRouter = require('./readings');
 const { getUsersCollection } = require('../db/mongodb');
 const { authenticateToken, validateLogin, validateRegister, JWT_SECRET } = require('../middleware/auth');
+const mqttHandler = require('../mqtt/handler');
+const multer = require('multer');
 
 const router = express.Router();
+
+// Configure multer for file upload
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'public/firmware'); // Store files in public/firmware
+    },
+    filename: (req, file, cb) => {
+        const { deviceId } = req.body;
+        const filename = `${deviceId}_latest.bin`;
+        cb(null, filename);
+    }
+});
+
+const upload = multer({ storage });
 
 // Rate limiting cho auth endpoints
 const authLimiter = rateLimit({
@@ -169,6 +185,46 @@ router.get('/stats', async (req, res) => {
         console.error('Stats error:', error);
         return res.status(500).json({ error: 'Internal server error', details: error.message });
     }
+});
+
+// Firmware check endpoint
+router.get('/firmware/check', (req, res) => {
+    const { deviceId, currentVersion } = req.query;
+
+    // TODO: Thay thế logic này bằng cách kiểm tra phiên bản firmware mới nhất từ database hoặc file
+    const latestVersion = '2.0';
+    const host = req.get('host'); // Lấy host từ request
+    const firmwareUrl = `https://${host}/firmware/${deviceId}_v${latestVersion}.bin`;
+
+    if (latestVersion > currentVersion) {
+        res.json({ firmwareUrl, version: latestVersion });
+    } else {
+        res.json({ message: 'No update available' });
+    }
+});
+
+router.get('/firmwareUpdateOTA', (req, res) => {
+    const { serialNumber, OTAurl } = req.query;
+
+    if (!OTAurl) {
+        return res.status(400).json({ error: 'OTA URL is required' });
+    }
+
+    // Publish MQTT message to notify ESP32
+    mqttHandler.publishFirmwareUpdateOTA(serialNumber, OTAurl);
+    console.log(`Firmware update OTA message sent to device ${serialNumber} with OTA URL: ${OTAurl}`);
+    res.json({ success: true });
+
+});
+
+router.post('/firmware/upload', upload.single('firmware'), (req, res) => {
+    const { deviceId } = req.body;
+    const firmwareUrl = `/firmware/${deviceId}_latest.bin`;
+
+    // Publish MQTT message to notify ESP32
+    mqttHandler.publishFirmwareUpdate(deviceId, firmwareUrl, 'latest');
+
+    res.json({ success: true });
 });
 
 // Mount sub-routes (đã được bảo vệ trong từng file)

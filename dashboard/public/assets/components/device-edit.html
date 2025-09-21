@@ -1,0 +1,26 @@
+<div class="container">
+  <h2>Edit Device</h2>
+  <form id="editDeviceForm">
+    <div class="mb-3">
+      <label for="deviceName" class="form-label">Name</label>
+      <input type="text" class="form-control" id="deviceName" name="name">
+    </div>
+    <div class="mb-3">
+      <label for="deviceLocation" class="form-label">Location</label>
+      <input type="text" class="form-control" id="deviceLocation" name="location">
+    </div>
+    <div class="mb-3">
+      <label for="deviceOTAUrl" class="form-label">OTA URL</label>
+      <input type="text" class="form-control" id="deviceOTAUrl" name="ota_url">
+    </div>
+    <div class="mb-3">
+      <label for="deviceStatus" class="form-label">Status</label>
+      <select class="form-select" id="deviceStatus" name="status">
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+    <button type="button" class="btn btn-secondary" id="cancelEdit">Cancel</button>
+  </form>
+</div>

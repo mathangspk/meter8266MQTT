@@ -1,5 +1,5 @@
 const API_BASE = 'https://113.161.220.166:3001/api';
-//const API_BASE = 'https://localhost:3001/api';
+//const API_BASE = 'https://192.168.1.50:3001/api';
 // Helper function to get auth token
 const getAuthToken = () => localStorage.getItem('token');
 
@@ -189,4 +189,46 @@ const API = {
         return await this.fetchStats();
     },
 
+    async ClickFirmwareUpdateOTA(serialNumber, OTAurl) {
+        try {
+            const url = `${API_BASE}/firmwareUpdateOta?serialNumber=${encodeURIComponent(serialNumber)}&OTAurl=${encodeURIComponent(OTAurl)}`;
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server responded with ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data;
+        } catch (err) {
+            console.error('API.FirmwareUpdateOTA error:', err);
+            throw err; // để UI biết có lỗi
+        }
+    },
+
+    async updateDevice(serialNumber, deviceData) {
+        try {
+            const response = await authenticatedFetch(`${API_BASE}/devices/serial/${encodeURIComponent(serialNumber)}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(deviceData)
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update device');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error updating device:', error);
+            return { error: 'Failed to update device' };
+        }
+    }
 };

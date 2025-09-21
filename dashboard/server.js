@@ -26,12 +26,13 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://localhost:3001"],
             fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
             scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
             scriptSrcAttr: ["'unsafe-inline'"],
             connectSrc: ["'self'", "ws://localhost:8080", "ws://113.161.220.166:8080", "wss://113.161.220.166:8080", "http://localhost:3001", "http://113.161.220.166:3001", "https://113.161.220.166:3001", "https://cdn.jsdelivr.net"],
-            imgSrc: ["'self'", "data:", "https://cdn.jsdelivr.net"]
+            imgSrc: ["'self'", "data:", "https://cdn.jsdelivr.net"],
+            baseUri: ["'self'", "https://113.161.220.166:3001", "https://localhost:3001", "https://192.168.1.50:3001"],
         }
     }
 }));
@@ -52,8 +53,7 @@ app.use(limiter);
 
 // CORS configuration
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'https://113.161.220.166:3001',
-    credentials: true
+    origin: '*'
 }));
 
 app.use(express.json({ limit: '10mb' }));
